@@ -1,32 +1,29 @@
-import functools, pymysql
+import functools
+import pymysql
+import random
+import smtplib
+from datetime import datetime
+from email.header import Header
+from email.mime.text import MIMEText
+
 from flask import (
-    Blueprint, flash, g, request, session, url_for, json, jsonify
+    Blueprint, g, request, session, jsonify
 )
 from werkzeug.security import check_password_hash, generate_password_hash
+
 from dbconfig import *
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 
-def login_required(view):
-    """View decorator that redirects anonymous users to the login page."""
-
-    @functools.wraps(view)
-    def wrapped_view(**kwargs):
-        if g.user is None:
-            return "login_error"
-        return view(**kwargs)
-
-    return wrapped_view
-
-
 @bp.route('/signup', methods=('GET', 'POST'))
 def signup():
-    if request.method == 'POST':
+    if request.method == 'POST' and request.form['request_type'] == 'sign_up':
         email = request.form['email']
         username = request.form['nickname']
         password1 = request.form['password1']
         password2 = request.form['password2']
+        verification_code = request.form['verification_code']
         error = None
 
         # 打开数据库连接
@@ -41,12 +38,29 @@ def signup():
         elif not password2:
             error = 'Password is required.'
         elif password1 != password2:
-            error = 'Password mismatch！'
+            error = 'Password mismatch.'
         elif not email:
             error = 'Email is required.'
+        elif len(password1) < 8:
+            error = 'password is less than 8.'
 
         if cur.execute('select * from users where email = %s', (email,)) > 0:
             error = 'User is existed.'
+
+        if cur.execute('select * from verification_code where email = %s', (email,)) > 0:
+            v_codes = cur.fetchall()
+            time_code = v_codes[len(v_codes) - 1][2]  # 取最后一条记录的时间，再转为datetime
+            time_now = datetime.now()
+
+            real_v_code = ''
+            if (time_now - time_code).total_seconds() <= 15 * 60:  # 时间少于15分钟才算
+                real_v_code = str(v_codes[len(v_codes) - 1][1])
+            print('用户v_code：' + verification_code)
+            print('数据库v_code：' + real_v_code)
+            if verification_code != real_v_code:
+                error = '验证码不正确！'
+        else:
+            error = '还没有发送验证码！'
 
         if error is None:
             cur.execute(
@@ -56,10 +70,54 @@ def signup():
             db.commit()
             # disconnect mysql
             db.close()
-            return jsonify(success=True)
-        return jsonify(error=error)
+            return jsonify(status='success')
+        return jsonify(status='error', error=error)
+    elif request.method == 'POST' and request.form['request_type'] == 'send_verification_code':  # 验证码
+        email = request.form['email']
 
-    return jsonify(stages='success')
+        # 查是否重复注册，打开数据库连接
+        db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
+        # 使用 cursor() 方法创建一个游标对象 cursor
+        cur = db.cursor()
+        error = None
+        if cur.execute('select * from users where email = %s', (email,)) > 0:
+            error = 'User is existed.'
+
+        if error is None:
+            # 第三方 SMTP 服务
+            mail_host = "smtp.qq.com"  # 设置服务器
+            mail_user = "1542029827@qq.com"  # 用户名
+            mail_pass = "hqzfpfsukqvifgdf"  # 口令
+
+            sender = '1542029827@qq.com'
+            receivers = [email]  # 接收邮件，可设置为你的QQ邮箱或者其他邮箱
+            verification_code = random.randint(1000, 9999)
+
+            message = MIMEText('你的验证码为：' + verification_code.__str__() + '。请不要把验证码泄露给其他人！15分钟内有效。 【汕大顺手邦】',
+                               'plain', 'utf-8')
+            message['From'] = Header('汕大顺手邦', 'utf-8')
+            message['To'] = Header(receivers[0], 'utf-8')
+            message['Subject'] = Header('【汕大顺手邦】验证码', 'utf-8')
+
+            try:
+                smtp_obj = smtplib.SMTP()
+                smtp_obj.connect(mail_host, 25)
+                smtp_obj.login(mail_user, mail_pass)
+                smtp_obj.sendmail(sender, receivers, message.as_string())
+                cur.execute('insert into verification_code (email, verification_code) values (%s,%s)',
+                            (email, verification_code,))
+                db.commit()
+                # disconnect mysql
+                db.close()
+                return jsonify(status='success')
+            except smtplib.SMTPException:
+                return jsonify(status='error', error='send email fail!')
+        else:
+            db.commit()
+            # disconnect mysql
+            db.close()
+            return jsonify(status='error', error=error)
+    return jsonify(status='error', error='other error')  # 两种请求之外的其他情况
 
 
 @bp.route('/login', methods=('GET', 'POST'))
@@ -90,14 +148,13 @@ def login():
             session.clear()
             session['email'] = user[2]  # the third column
 
-            json_data = {"nickname": user[3], "signature": user[5],
-                          "avatar_url": user[6], "gender": user[1],
-                          "phone": user[4], "email": user[2]}
+            user_info = {"nickname": user[3], "signature": user[5],
+                         "avatar_url": user[6], "gender": user[1],
+                         "phone": user[4], "email": user[2]}
 
-            return jsonify({"success": 1, "data": json_data})
+            return jsonify({"success": 1, "data": user_info})
 
         return jsonify(error=error)
-
     return 1
 
 
