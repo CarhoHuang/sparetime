@@ -1,3 +1,3 @@
-DBUser = 'root'
-DBPassword = '154202'
-DBName = 'sparetimeforu'
+DBUser = 'Hjh'
+DBPassword = 'DC2018'
+DBName = 'ceshi'
