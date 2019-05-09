@@ -1,16 +1,14 @@
-import functools
-import pymysql
 import random
 import smtplib
+import pymysql
+import auth_token
 from datetime import datetime
 from email.header import Header
 from email.mime.text import MIMEText
-
 from flask import (
-    Blueprint, g, request, session, jsonify
+    Blueprint, g, request, session, jsonify, abort
 )
 from werkzeug.security import check_password_hash, generate_password_hash
-
 from dbconfig import *
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -43,6 +41,8 @@ def signup():
             error = 'Email is required.'
         elif len(password1) < 8:
             error = 'password is less than 8.'
+        elif str(email).find('@stu.edu.cn') == 0:
+            error = 'Not STU email.'
 
         if cur.execute('select * from users where email = %s', (email,)) > 0:
             error = 'User is existed.'
@@ -153,7 +153,6 @@ def login():
                          "phone": user[4], "email": user[2]}
 
             return jsonify({"success": 1, "data": user_info})
-
         return jsonify(error=error)
     return 1
 
