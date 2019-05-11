@@ -1,12 +1,13 @@
 import random
 import smtplib
-import pymysql
-import auth_token
+import jwt
 from datetime import datetime
 from email.header import Header
 from email.mime.text import MIMEText
+
+import pymysql
 from flask import (
-    Blueprint, g, request, session, jsonify, abort
+    Blueprint, request, jsonify
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 from dbconfig import *
@@ -145,35 +146,15 @@ def login():
             error = 'Incorrect password.'
 
         if error is None:
-            session.clear()
-            session['email'] = user[2]  # the third column
-
+            key = 'sparetimeforu_key'
+            now_second = int((datetime.utcnow() - datetime(1970, 1, 1, 0, 0, 0)).total_seconds())
+            second_of_20_days = 1728000
+            auth_token = jwt.encode({'email': user[2], 'exp': now_second + second_of_20_days}, key,
+                                    algorithm='HS256')  # 得到的为bytes
             user_info = {"nickname": user[3], "signature": user[5],
                          "avatar_url": user[6], "gender": user[1],
-                         "phone": user[4], "email": user[2]}
+                         "phone": user[4], "email": user[2], 'auth_token': str(auth_token)}
 
             return jsonify({"success": 1, "data": user_info})
         return jsonify(error=error)
     return 1
-
-
-@bp.route('/logout')
-def logout():
-    session.clear()
-    return 1
-
-
-# 已经登陆
-@bp.before_app_request
-def load_logged_in_user():
-    if 'email' not in session:
-        g.user = None
-    else:
-        # 打开数据库连接
-        db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
-        cur = db.cursor()
-        cur.execute(
-            'select * from users where email = %s', session['email']
-        )
-        g.user = cur.fetchone()
-        db.close()
