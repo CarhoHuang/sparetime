@@ -26,8 +26,8 @@ def create_app(test_config=None):
     from . import auth
     app.register_blueprint(auth.bp)
 
-    from . import errand
-    app.register_blueprint(errand.bp)
+    from . import mission
+    app.register_blueprint(mission.bp)
 
     app.app_context()
     return app

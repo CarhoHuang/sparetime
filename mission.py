@@ -6,7 +6,7 @@ from flask import (
 from werkzeug.security import check_password_hash, generate_password_hash
 from dbconfig import *
 
-bp = Blueprint('auth', __name__, url_prefix='/auth')
+bp = Blueprint('mission', __name__, url_prefix='/mission')
 
 
 # 遍历数据库返回所有符合条件的行
@@ -70,7 +70,7 @@ def getMissionByBeginLocation(origin):
             error = 'Error BeginLocation.'
 
         if error is None:
-            sql = 'select * from misson where origin = {this_BeginLocation} AND isDeleted = 0'.format(
+            sql = 'select * from mission where origin = {this_BeginLocation} AND isDeleted = 0'.format(
                 this_BeginLocation=origin)
             json_data = search(sql)
             data = {"success": 1, "data": json_data}
@@ -91,7 +91,7 @@ def getMissionByEndLocation(destination):
             error = 'Error EndLocation.'
 
         if error is None:
-            sql = 'select * from misson where destination = {this_EndLocation} AND isDeleted = 0'.format(
+            sql = 'select * from mission where destination = {this_EndLocation} AND isDeleted = 0'.format(
                 this_EndLocation=destination)
             json_data = search(sql)
             data = {"success": 1, "data": json_data}
@@ -147,7 +147,7 @@ def upBeginLocation(origin):
             error = 'Error BeginLocation.'
 
         if error is None:
-            sql = 'update misson set origin = {this_BeginLocation}'.format(this_BeginLocation=origin)
+            sql = 'update mission set origin = {this_BeginLocation}'.format(this_BeginLocation=origin)
             success = up(sql)
 
             return jsonify(success=success)
@@ -166,7 +166,7 @@ def upEndLocation(destination):
             error = 'Error EndLocation.'
 
         if error is None:
-            sql = 'update misson set destination = {this_EndLocation}'.format(this_EndLocation=destination)
+            sql = 'update mission set destination = {this_EndLocation}'.format(this_EndLocation=destination)
             success = up(sql)
 
             return jsonify(success=success)
@@ -185,7 +185,7 @@ def upEndTime(endtime):
             error = 'Error EndTime.'
 
         if error is None:
-            sql = 'update misson set endtime = {this_EndTime}'.format(this_EndTime=endtime)
+            sql = 'update mission set endtime = {this_EndTime}'.format(this_EndTime=endtime)
             success = up(sql)
 
             return jsonify(success=success)
@@ -223,7 +223,7 @@ def upDescription(content):
             error = 'Error description.'
 
         if error is None:
-            sql = 'update misson set content = {this_description}'.format(this_description=content)
+            sql = 'update mission set content = {this_description}'.format(this_description=content)
             success = up(sql)
 
             return jsonify(success=success)
@@ -242,7 +242,7 @@ def upPhoto_location1(picture_url_1):
             error = 'Error photo_location.'
 
         if error is None:
-            sql = 'update misson set picture_url_1 = {this_photo_location}'.format(this_photo_location=picture_url_1)
+            sql = 'update mission set picture_url_1 = {this_photo_location}'.format(this_photo_location=picture_url_1)
             success = up(sql)
 
             return jsonify(success=success)
@@ -261,7 +261,7 @@ def upPhoto_location2(picture_url_2):
             error = 'Error photo_location.'
 
         if error is None:
-            sql = 'update misson set picture_url_2 = {this_photo_location}'.format(this_photo_location=picture_url_2)
+            sql = 'update mission set picture_url_2 = {this_photo_location}'.format(this_photo_location=picture_url_2)
             success = up(sql)
 
             return jsonify(success=success)
@@ -280,7 +280,7 @@ def upPhoto_location3(picture_url_3):
             error = 'Error photo_location.'
 
         if error is None:
-            sql = 'update misson set picture_url_3 = {this_photo_location}'.format(this_photo_location=picture_url_3)
+            sql = 'update mission set picture_url_3 = {this_photo_location}'.format(this_photo_location=picture_url_3)
             success = up(sql)
 
             return jsonify(success=success)
@@ -299,7 +299,7 @@ def upMoney(money):
             error = 'Error Money.'
 
         if error is None:
-            sql = 'update misson set Money = {this_Money}'.format(this_Money=money)
+            sql = 'update mission set Money = {this_Money}'.format(this_Money=money)
             success = up(sql)
 
             return jsonify(success=success)
@@ -335,7 +335,7 @@ def upEvaluate(evaluate):
             error = 'Error evaluate.'
 
         if error is None:
-            sql = 'update misson set evaluate = {this_evaluate}'.format(this_evaluate=evaluate)
+            sql = 'update mission set evaluate = {this_evaluate}'.format(this_evaluate=evaluate)
             success = up(sql)
 
             return jsonify(success=success)
@@ -354,7 +354,7 @@ def deleteOrNot(id, isDeleted):  # 如果删除传入idDeleted = 1, 如果恢复
             error = 'Error Mission_id.'
 
         if error is None:
-            sql = 'update misson set isDeleted = {this_ifShow} where id = {this_Mission_id}'.format(
+            sql = 'update mission set isDeleted = {this_ifShow} where id = {this_Mission_id}'.format(
                 this_ifShow=isDeleted, this_Mission_id=id)
             success = up(sql)
 
@@ -390,7 +390,7 @@ def insert(origin, destination, endtime, content, picture_url_1, picture_url_2, 
             error = 'Error Mission_id.'
 
         if error is None:
-            sql = '''INSERT INTO misson(
+            sql = '''INSERT INTO mission(
                 origin, 
                 destination, 
                 endtime, 
