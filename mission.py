@@ -18,108 +18,99 @@ def search(sql):
     cur = db.cursor()
 
     cur.execute(sql)
-    user = cur.fetchall()
+    posts = cur.fetchall()
     db.close()
 
-    json_data = []
-    for row in user:
-        json_data.append({
-            "BeginLocation": row[0],
-            "EndLocation": row[1],
-            "BeginTime": row[2],
-            "EndTime": row[3],
-            "label": row[4],
-            "description": row[5],
-            "photo_location": row[6],
-            "ReleaseUser_id": row[7],
-            "AcceptUser_id": row[8],
-            "Money": row[9],
-            "if_finish": row[10],
-            "evaluate": row[11],
-            "Mission_id": row[12]})
-
+    json_data = {}  # 每一个键值对是一个帖子
+    for idx, row in enumerate(posts):  # posts列表，列表元素为元组
+        json_data.update({'post_%s' % idx: {
+            "user_id": row[0],
+            "content": row[1],
+            "picture_url_1": row[2],
+            "picture_url_2": row[3],
+            "picture_url_3": row[4],
+            "origin": row[5],
+            "destination": row[6],
+            "like_number": row[7],
+            "comment_number": row[8],
+            "id": row[9],
+            "isdeleted": row[10],
+            "endtime": row[11],
+            "money": row[12],
+            "evaluate": row[13],
+            "receiver_id": row[14]}})
     return json_data
 
 
 # 通过任务ID获取任务的详细信息
 @bp.route('/getMissionByMission_id', methods=('GET', 'POST'))
-def getMissionByMission_id(id):
-    if request.method == 'GET':
+def getMissionByMission_id():
+    if request.method == 'POST':
+        id = request.form['id']
         error = None
-        if id < 0:
-            error = 'Error Mission_id.'
+        if id is None:
+            error = 'Error id.'
 
         if error is None:
-            sql = 'select * from mission where id = {this_Mission_id} AND isDeleted = 0'.format(this_Mission_id=id)
+            sql = 'select * from mission where id = %s and isdeleted = 0' % (id,)
             json_data = search(sql)
-            data = {"success": 1, "data": json_data}
-
+            data = {'status': "success", 'posts': json_data}
             return jsonify(data)
-
         return jsonify(error=error)
-
     return 1
 
 
 # 通过任务开始地点获取任务的详细信息
-@bp.route('/getMissionByBeginLocation', methods=('GET', 'POST'))
-def getMissionByBeginLocation(origin):
-    if request.method == 'GET':
+@bp.route('/getMissionByorigin', methods=('GET', 'POST'))
+def getMissionByorgin():
+    if request.method == 'POST':
+        origin = request.form['origin']
         error = None
         if origin is None:
-            error = 'Error BeginLocation.'
+            error = 'Error origin.'
 
         if error is None:
-            sql = 'select * from mission where origin = {this_BeginLocation} AND isDeleted = 0'.format(
-                this_BeginLocation=origin)
+            sql = 'select * from mission where origin = %s and isdeleted =0' % (origin,)
             json_data = search(sql)
-            data = {"success": 1, "data": json_data}
-
+            data = {'status': "success", 'posts': json_data}
             return jsonify(data)
-
         return jsonify(error=error)
-
     return 1
 
 
 # 通过任务目的地点获取任务的详细信息
-@bp.route('/getMissionByEndLocation', methods=('GET', 'POST'))
-def getMissionByEndLocation(destination):
-    if request.method == 'GET':
+@bp.route('/getMissionBydestination', methods=('GET', 'POST'))
+def getMissionBydestination():
+    if request.method == 'POST':
+        destination = request.form['destination']
         error = None
         if destination is None:
-            error = 'Error EndLocation.'
+            error = 'Error destination.'
 
         if error is None:
-            sql = 'select * from mission where destination = {this_EndLocation} AND isDeleted = 0'.format(
-                this_EndLocation=destination)
+            sql = 'select * from mission where destination = %s and isdeleted =0' % (destination,)
             json_data = search(sql)
-            data = {"success": 1, "data": json_data}
-
+            data = {'status': "success", 'posts': json_data}
             return jsonify(data)
-
         return jsonify(error=error)
-
     return 1
 
 
 # # 通过任务标签获取任务的详细信息
-# @bp.route('/getMissionByLabel', methods=('GET', 'POST'))
-# def getMissionByLabel(Label):
-#     if request.method == 'GET':
+# @bp.route('/getMissionBylabel', methods=('GET', 'POST'))
+# def getMissionBylabel(label):
+#     if request.method == 'POST':
+#         label = request.form['label']
 #         error = None
 #         if Label is None:
-#             error = 'Error Label.'
+#             error = 'Error label.'
 #
 #         if error is None:
-#             sql = 'select * from Mission where Label = {this_Label} AND ifShow = 1'.format(this_Label=Label)
+#             sql = 'select * from Mission where label = %s and isdeleted = 0' % (label,)
 #             json_data = search(sql)
-#             data = {"success": 1, "data": json_data}
-#
+#             data = {'status': "success", 'posts': json_data}
 #             return jsonify(data)
-#
 #         return jsonify(error=error)
-#
 #     return 1
 
 
@@ -139,215 +130,193 @@ def up(sql):
 
 
 # 改变任务开始地点
-@bp.route('/upBeginLocation', methods=('GET', 'POST'))
-def upBeginLocation(origin):
+@bp.route('/uporigin', methods=('GET', 'POST'))
+def uporigin():
     if request.method == 'POST':
+        origin = request.form['origin']
         error = None
         if origin is None:
-            error = 'Error BeginLocation.'
+            error = 'Error origin.'
 
         if error is None:
-            sql = 'update mission set origin = {this_BeginLocation}'.format(this_BeginLocation=origin)
+            sql = 'update mission set origin = %s' % (origin,)
             success = up(sql)
-
             return jsonify(success=success)
-
         return jsonify(error=error)
-
     return 1
 
 
 # 改变任务目的地点
-@bp.route('/upEndLocation', methods=('GET', 'POST'))
-def upEndLocation(destination):
+@bp.route('/updestination', methods=('GET', 'POST'))
+def updestination():
     if request.method == 'POST':
+        destination = request.form['destination']
         error = None
         if destination is None:
             error = 'Error EndLocation.'
 
         if error is None:
-            sql = 'update mission set destination = {this_EndLocation}'.format(this_EndLocation=destination)
+            sql = 'update mission set destination = %s' % (destination,)
             success = up(sql)
-
             return jsonify(success=success)
-
         return jsonify(error=error)
-
     return 1
 
 
 # 改变任务截止时间
-@bp.route('/upEndTime', methods=('GET', 'POST'))
-def upEndTime(endtime):
+@bp.route('/upendtime', methods=('GET', 'POST'))
+def upendTime():
     if request.method == 'POST':
+        endtime = request.form['endtime']
         error = None
         if endtime is None:
             error = 'Error EndTime.'
 
         if error is None:
-            sql = 'update mission set endtime = {this_EndTime}'.format(this_EndTime=endtime)
+            sql = 'update mission set endtime = %s' % (endtime,)
             success = up(sql)
-
             return jsonify(success=success)
-
         return jsonify(error=error)
-
     return 1
 
 
 # # 改变任务标签
-# @bp.route('/upLable', methods=('GET', 'POST'))
-# def upLable(label):
+# @bp.route('/uplable', methods=('GET', 'POST'))
+# def uplable(label):
 #     if request.method == 'POST':
+#         label = request.form['label']
 #         error = None
 #         if label is None:
 #             error = 'Error label.'
 #
 #         if error is None:
-#             sql = 'update Mission set label = {this_label}'.format(this_label=label)
+#             sql = 'update Mission set label = %s' % (label,)
 #             success = up(sql)
-#
 #             return jsonify(success=success)
-#
 #         return jsonify(error=error)
-#
 #     return 1
 
 
 # 改变任务描述
-@bp.route('/upDescription', methods=('GET', 'POST'))
-def upDescription(content):
+@bp.route('/upcontent', methods=('GET', 'POST'))
+def upcontent():
     if request.method == 'POST':
+        content = request.form['content']
         error = None
         if content is None:
-            error = 'Error description.'
+            error = 'Error content.'
 
         if error is None:
-            sql = 'update mission set content = {this_description}'.format(this_description=content)
+            sql = 'update mission set content = %s' % (content,)
             success = up(sql)
-
             return jsonify(success=success)
-
         return jsonify(error=error)
-
     return 1
 
 
 # 改变图片1
-@bp.route('/upPhoto_location', methods=('GET', 'POST'))
-def upPhoto_location1(picture_url_1):
-    if request.method == 'POST':
+@bp.route('/up_picture_url_1', methods=('GET', 'POST'))
+def up_picture_url_1():
+    if request.method == 'GET':
+        picture_url_1 = request.args['picture_url_1']
         error = None
         if picture_url_1 is None:
-            error = 'Error photo_location.'
+            error = 'Error picture_url_1.'
 
         if error is None:
-            sql = 'update mission set picture_url_1 = {this_photo_location}'.format(this_photo_location=picture_url_1)
+            sql = 'update mission set picture_url_1 = %s' % (picture_url_1,)
             success = up(sql)
-
             return jsonify(success=success)
-
         return jsonify(error=error)
-
     return 1
 
 
 # 改变图片2
-@bp.route('/upPhoto_location', methods=('GET', 'POST'))
-def upPhoto_location2(picture_url_2):
-    if request.method == 'POST':
+@bp.route('/up_picture_url_2', methods=('GET', 'POST'))
+def up_picture_url_2():
+    if request.method == 'GET':
+        picture_url_2 = request.args['picture_url_2']
         error = None
         if picture_url_2 is None:
-            error = 'Error photo_location.'
+            error = 'Error picture_url_2.'
 
         if error is None:
-            sql = 'update mission set picture_url_2 = {this_photo_location}'.format(this_photo_location=picture_url_2)
+            sql = 'update mission set picture_url_2 = %s' % (picture_url_2,)
             success = up(sql)
-
             return jsonify(success=success)
-
         return jsonify(error=error)
-
     return 1
 
 
 # 改变图片3
-@bp.route('/upPhoto_location', methods=('GET', 'POST'))
-def upPhoto_location3(picture_url_3):
-    if request.method == 'POST':
+@bp.route('/up_picture_url_3', methods=('GET', 'POST'))
+def up_picture_url_3(picture_url_3):
+    if request.method == 'GET':
+        picture_url_3 = request.args['picture_url_3']
         error = None
         if picture_url_3 is None:
-            error = 'Error photo_location.'
+            error = 'Error picture_url_3.'
 
         if error is None:
-            sql = 'update mission set picture_url_3 = {this_photo_location}'.format(this_photo_location=picture_url_3)
+            sql = 'update mission set picture_url_3 = %s' % (picture_url_3,)
             success = up(sql)
-
             return jsonify(success=success)
-
         return jsonify(error=error)
-
     return 1
 
 
 # 改变赏金
-@bp.route('/upMoney', methods=('GET', 'POST'))
-def upMoney(money):
+@bp.route('/upmoney', methods=('GET', 'POST'))
+def upmoney():
     if request.method == 'POST':
+        money = request.form['money']
         error = None
         if money < 0:
-            error = 'Error Money.'
+            error = 'Error money.'
 
         if error is None:
-            sql = 'update mission set Money = {this_Money}'.format(this_Money=money)
+            sql = 'update mission set Money = %s' % (money,)
             success = up(sql)
-
             return jsonify(success=success)
-
         return jsonify(error=error)
-
     return 1
 
 
 # # 改变任务完成状态
 # @bp.route('/upIf_finish', methods=('GET', 'POST'))
 # def upIf_finish(if_finish):
+#     if_finish = request.form['if_finish']
 #     if request.method == 'POST':
 #         error = None
 #
 #         if error is None:
-#             sql = 'update Mission set if_finish = {this_if_finish}'.format(this_if_finish=if_finish)
+#             sql = 'update Mission set if_finish = %s' % (if_finish,)
 #             success = up(sql)
-#
-#             return jsonify(succ ess=success)
-#
+#             return jsonify(success=success)
 #         return jsonify(error=error)
-#
 #     return 1
 
 
 # 给予任务评价
-@bp.route('/upEvaluate', methods=('GET', 'POST'))
-def upEvaluate(evaluate):
+@bp.route('/upevaluate', methods=('GET', 'POST'))
+def upevaluate():
     if request.method == 'POST':
+        evaluate = request.form['evaluate']
         error = None
         if evaluate is None:
             error = 'Error evaluate.'
 
         if error is None:
-            sql = 'update mission set evaluate = {this_evaluate}'.format(this_evaluate=evaluate)
+            sql = 'update mission set evaluate = %s' % (evaluate,)
             success = up(sql)
-
             return jsonify(success=success)
-
         return jsonify(error=error)
-
     return 1
 
 
 # 删除或反删除任务
-@bp.route('/deleteOrNot', methods=('GET', 'POST'))
-def deleteOrNot(id, isDeleted):  # 如果删除传入idDeleted = 1, 如果恢复 = 0
+@bp.route('/deleteorNot', methods=('GET', 'POST'))
+def deleteorNot(id, isdeleted):  # 如果删除传入ideleted = 1, 如果恢复 = 0
     if request.method == 'POST':
         error = None
         if id < 0:
@@ -355,84 +324,114 @@ def deleteOrNot(id, isDeleted):  # 如果删除传入idDeleted = 1, 如果恢复
 
         if error is None:
             sql = 'update mission set isDeleted = {this_ifShow} where id = {this_Mission_id}'.format(
-                this_ifShow=isDeleted, this_Mission_id=id)
+                this_ifShow=isdeleted, this_Mission_id=id)
             success = up(sql)
-
             return jsonify(success=success)
-
         return jsonify(error=error)
-
     return 1
 
 
-# 向Mission表插入新的行
+# 向mission表插入新的行
 @bp.route('/insert', methods=('GET', 'POST'))
-def insert(origin, destination, endtime, content, picture_url_1, picture_url_2, picture_url_3, money, evaluate, id,
-           ReleaseUser_id=0,
-           AcceptUser_id=0):
+def insert():
     if request.method == 'POST':
+        user_id = request.form['user_id']
+        content = request.form['content']
+        picture_url_1 = request.form['picture_url_1']
+        picture_url_2 = request.form['picture_url_2']
+        picture_url_3 = request.form['picture_url_3']
+        origin = request.form['origin']
+        destination = request.form['destination']
+        like_number = request.form['like_number']
+        comment_number = request.form['comment_number']
+        id = request.form['id']
+        isdeleted = request.form['isdeleted']
+        endtime = request.form['endtime']
+        money = request.form['money']
+        evaluate = request.form['evaluate']
+        receiver_id = request.form['receiver_id']
         error = None
-        if origin is None:
-            error = 'Error BeginLocation.'
-        if destination is None:
-            error = 'Error EndLocation.'
-        if endtime is None:
-            error = 'Error EndTime.'
+
+        if user_id is None:
+            error = 'Error user_id.'
         if content is None:
-            error = 'Error description.'
-        # if ReleaseUser_id < 0:
-        #     error = 'Error ReleaseUser_id.'
-        # if AcceptUser_id < 0:
-        #     error = 'Error AcceptUser_id.'
-        if money < 0:
-            error = 'Error Money.'
-        if id < 0:
-            error = 'Error Mission_id.'
+            error = 'Error content.'
+        if picture_url_1 is None:
+            error = 'Error picture_url_1.'
+        if picture_url_2 is None:
+            error = 'Error picture_url_2.'
+        if picture_url_3 is None:
+            error = 'Error picture_url_3.'
+        if origin is None:
+            error = 'Error origin.'
+        if destination is None:
+            error = 'Error destination.'
+        if like_number is None:
+            error = 'Error like_number.'
+        if comment_number is None:
+            error = 'Error comment_number.'
+        if id is None:
+            error = 'Error id.'
+        if isdeleted is None:
+            error = 'Error isdeleted.'
+        if endtime is None:
+            error = 'Error endtime.'
+        if money is None:
+            error = 'Error money.'
+        if evaluate is None:
+            error = 'Error evaluate.'
+        if receiver_id is None:
+            error = 'Error receiver_id.'
 
         if error is None:
             sql = '''INSERT INTO mission(
-                origin, 
-                destination, 
-                endtime, 
+                user_id, 
                 content, 
                 picture_url_1, 
                 picture_url_2, 
-                picture_url_3,                           
-                Money, 
-                if_finish, 
-                evaluate, 
+                picture_url_3, 
+                origin, 
+                destination,                           
+                like_number, 
+                comment_number, 
                 id, 
-                isDeleted) VALUES(
-                    {this_BeginLocation}, 
-                    {this_EndLocation}, 
-                    {this_EndTime}, 
-                    {this_description}, 
-                    {this_photo_location1}, 
-                    {this_photo_location2}, 
-                    {this_photo_location3}, 
-                    # {this_ReleaseUser_id}, 
-                    # {this_AcceptUser_id}, 
-                    {this_Money}, 
-                    0, 
+                isdeleted, 
+                endtime,
+                money,
+                evaluate,
+                receiver_id,) VALUES(
+                    {this_user_id}, 
+                    {this_content}, 
+                    {this_picture_url_1}, 
+                    {this_picture_url_2}, 
+                    {this_picture_url_3}, 
+                    {this_origin}, 
+                    {this_destination}, 
+                    {this_like_number}, 
+                    {this_comment_number}, 
+                    {this_id}, 
+                    {this_isdeleted}, 
+                    {this_endtime}, 
+                    {this_money}, 
                     {this_evaluate}, 
-                    {this_Mission_id}, 
-                    1)'''.format(
-                this_BeginLocation=origin,
-                this_EndLocation=destination,
-                this_EndTime=endtime,
-                this_description=content,
-                this_photo_location1=picture_url_1,
-                this_photo_location2=picture_url_2,
-                this_photo_location3=picture_url_3,
-                # this_ReleaseUser_id=ReleaseUser_id,
-                # this_AcceptUser_id=AcceptUser_id,
-                this_Money=money,
+                    {this_receiver_id}, 
+                     )'''.format(
+                this_user_id=user_id,
+                this_content=content,
+                this_picture_url_1=picture_url_1,
+                this_picture_url_2=picture_url_2,
+                this_picture_url_3=picture_url_3,
+                this_origin=origin,
+                this_destination=destination,
+                this_like_number=like_number,
+                this_comment_number=comment_number,
+                this_id=id,
+                this_isdeleted=isdeleted,
+                this_endtime=endtime,
+                this_money=money,
                 this_evaluate=evaluate,
-                this_Mission_id=id)
+                this_receiver_id=receiver_id)
             success = up(sql)
-
             return jsonify(success=success)
-
         return jsonify(error=error)
-
     return 1
