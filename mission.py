@@ -1,12 +1,18 @@
 # 引用包
-import functools, pymysql
+import os
+import pymysql
+import jwt
+from datetime import datetime
+from werkzeug.utils import secure_filename
 from flask import (
-    Blueprint, flash, g, request, session, url_for, json, jsonify
+    Blueprint, request, jsonify
 )
-from werkzeug.security import check_password_hash, generate_password_hash
+
 from dbconfig import *
 
 bp = Blueprint('mission', __name__, url_prefix='/mission')
+# 上传图片相关
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 
 # 遍历数据库返回所有符合条件的行
@@ -43,8 +49,8 @@ def search(sql):
 
 
 # 通过任务ID获取任务的详细信息
-@bp.route('/getMissionByMission_id', methods=('GET', 'POST'))
-def getMissionByMission_id():
+@bp.route('/get_mission_by_mission_id', methods=('GET', 'POST'))
+def get_mission_by_mission_id():
     if request.method == 'POST':
         id = request.form['id']
         error = None
@@ -52,7 +58,7 @@ def getMissionByMission_id():
             error = 'Error id.'
 
         if error is None:
-            sql = 'select * from mission where id = %s and isdeleted = 0' % (id,)
+            sql = 'select * from mission where id = %s and is_deleted = 0' % (id,)
             json_data = search(sql)
             data = {'status': "success", 'posts': json_data}
             return jsonify(data)
@@ -61,8 +67,8 @@ def getMissionByMission_id():
 
 
 # 通过任务开始地点获取任务的详细信息
-@bp.route('/getMissionByorigin', methods=('GET', 'POST'))
-def getMissionByorgin():
+@bp.route('/get_mission_by_origin', methods=('GET', 'POST'))
+def get_mission_by_origin():
     if request.method == 'POST':
         origin = request.form['origin']
         error = None
@@ -70,7 +76,7 @@ def getMissionByorgin():
             error = 'Error origin.'
 
         if error is None:
-            sql = 'select * from mission where origin = %s and isdeleted =0' % (origin,)
+            sql = 'select * from mission where origin = %s and is_deleted =0' % (origin,)
             json_data = search(sql)
             data = {'status': "success", 'posts': json_data}
             return jsonify(data)
@@ -79,8 +85,8 @@ def getMissionByorgin():
 
 
 # 通过任务目的地点获取任务的详细信息
-@bp.route('/getMissionBydestination', methods=('GET', 'POST'))
-def getMissionBydestination():
+@bp.route('/get_mission_by_destination', methods=('GET', 'POST'))
+def get_mission_by_destination():
     if request.method == 'POST':
         destination = request.form['destination']
         error = None
@@ -88,30 +94,12 @@ def getMissionBydestination():
             error = 'Error destination.'
 
         if error is None:
-            sql = 'select * from mission where destination = %s and isdeleted =0' % (destination,)
+            sql = 'select * from mission where destination = %s and is_deleted =0' % (destination,)
             json_data = search(sql)
             data = {'status': "success", 'posts': json_data}
             return jsonify(data)
         return jsonify(error=error)
     return 1
-
-
-# # 通过任务标签获取任务的详细信息
-# @bp.route('/getMissionBylabel', methods=('GET', 'POST'))
-# def getMissionBylabel(label):
-#     if request.method == 'POST':
-#         label = request.form['label']
-#         error = None
-#         if Label is None:
-#             error = 'Error label.'
-#
-#         if error is None:
-#             sql = 'select * from Mission where label = %s and isdeleted = 0' % (label,)
-#             json_data = search(sql)
-#             data = {'status': "success", 'posts': json_data}
-#             return jsonify(data)
-#         return jsonify(error=error)
-#     return 1
 
 
 # 更改数据
@@ -130,8 +118,8 @@ def up(sql):
 
 
 # 改变任务开始地点
-@bp.route('/uporigin', methods=('GET', 'POST'))
-def uporigin():
+@bp.route('/up_origin', methods=('GET', 'POST'))
+def up_origin():
     if request.method == 'POST':
         origin = request.form['origin']
         error = None
@@ -139,16 +127,19 @@ def uporigin():
             error = 'Error origin.'
 
         if error is None:
-            sql = 'update mission set origin = %s' % (origin,)
-            success = up(sql)
-            return jsonify(success=success)
+            sql = '''
+            update mission set origin='%s' where id=1
+            ''' % origin
+            print(sql)
+            up(sql)
+            return jsonify(status='success')
         return jsonify(error=error)
     return 1
 
 
 # 改变任务目的地点
-@bp.route('/updestination', methods=('GET', 'POST'))
-def updestination():
+@bp.route('/up_destination', methods=('GET', 'POST'))
+def up_destination():
     if request.method == 'POST':
         destination = request.form['destination']
         error = None
@@ -164,42 +155,25 @@ def updestination():
 
 
 # 改变任务截止时间
-@bp.route('/upendtime', methods=('GET', 'POST'))
-def upendTime():
+@bp.route('/up_end_time', methods=('GET', 'POST'))
+def up_end_time():
     if request.method == 'POST':
-        endtime = request.form['endtime']
+        end_time = request.form['end_time']
         error = None
-        if endtime is None:
+        if end_time is None:
             error = 'Error EndTime.'
 
         if error is None:
-            sql = 'update mission set endtime = %s' % (endtime,)
+            sql = 'update mission set end_time = %s' % (end_time,)
             success = up(sql)
             return jsonify(success=success)
         return jsonify(error=error)
     return 1
 
 
-# # 改变任务标签
-# @bp.route('/uplable', methods=('GET', 'POST'))
-# def uplable(label):
-#     if request.method == 'POST':
-#         label = request.form['label']
-#         error = None
-#         if label is None:
-#             error = 'Error label.'
-#
-#         if error is None:
-#             sql = 'update Mission set label = %s' % (label,)
-#             success = up(sql)
-#             return jsonify(success=success)
-#         return jsonify(error=error)
-#     return 1
-
-
 # 改变任务描述
-@bp.route('/upcontent', methods=('GET', 'POST'))
-def upcontent():
+@bp.route('/up_content', methods=('GET', 'POST'))
+def up_content():
     if request.method == 'POST':
         content = request.form['content']
         error = None
@@ -282,21 +256,6 @@ def upmoney():
     return 1
 
 
-# # 改变任务完成状态
-# @bp.route('/upIf_finish', methods=('GET', 'POST'))
-# def upIf_finish(if_finish):
-#     if_finish = request.form['if_finish']
-#     if request.method == 'POST':
-#         error = None
-#
-#         if error is None:
-#             sql = 'update Mission set if_finish = %s' % (if_finish,)
-#             success = up(sql)
-#             return jsonify(success=success)
-#         return jsonify(error=error)
-#     return 1
-
-
 # 给予任务评价
 @bp.route('/upevaluate', methods=('GET', 'POST'))
 def upevaluate():
@@ -323,7 +282,7 @@ def deleteorNot(id, isdeleted):  # 如果删除传入ideleted = 1, 如果恢复 
             error = 'Error Mission_id.'
 
         if error is None:
-            sql = 'update mission set isDeleted = {this_ifShow} where id = {this_Mission_id}'.format(
+            sql = 'update mission set is_deleted = {this_ifShow} where id = {this_Mission_id}'.format(
                 this_ifShow=isdeleted, this_Mission_id=id)
             success = up(sql)
             return jsonify(success=success)
@@ -335,103 +294,134 @@ def deleteorNot(id, isdeleted):  # 如果删除传入ideleted = 1, 如果恢复 
 @bp.route('/insert', methods=('GET', 'POST'))
 def insert():
     if request.method == 'POST':
-        user_id = request.form['user_id']
-        content = request.form['content']
-        picture_url_1 = request.form['picture_url_1']
-        picture_url_2 = request.form['picture_url_2']
-        picture_url_3 = request.form['picture_url_3']
-        origin = request.form['origin']
-        destination = request.form['destination']
-        like_number = request.form['like_number']
-        comment_number = request.form['comment_number']
-        id = request.form['id']
-        isdeleted = request.form['isdeleted']
-        endtime = request.form['endtime']
-        money = request.form['money']
-        evaluate = request.form['evaluate']
-        receiver_id = request.form['receiver_id']
-        error = None
+        try:
+            auth_token_str = str(request.form['auth_token'])[2:len(str(request.form['auth_token'])) - 1]
+            auth_token = bytes(auth_token_str, 'utf8')
+            content = request.form['content']
+            origin = request.form['origin']
+            destination = request.form['destination']
+            end_time_str = request.form['end_time']
+            end_time = datetime.strptime(end_time_str, '%b %d %Y %H:%M')
+            money = request.form['money']
+        except:
+            return jsonify(status='error', error='Data acquisition failure')
 
-        if user_id is None:
-            error = 'Error user_id.'
+        picture_num = 0
+        try:
+            picture_1 = request.files['picture_1']
+            picture_num = picture_num + 1
+        except:
+            pass
+        try:
+            picture_2 = request.files['picture_2']
+            picture_num = picture_num + 1
+        except:
+            pass
+
+        try:
+            picture_3 = request.files['picture_3']
+            picture_num = picture_num + 1
+        except:
+            pass
+
+        # 通过token获取用户
+        try:
+            key = 'sparetimeforu_key'
+            user_json = jwt.decode(auth_token, key, algorithms=['HS256'])
+        except:
+            return jsonify(status='error', error='decode failed')
+        # 判断该token是否跟解析出来的用户token一致
+        user_id = user_json.get('user_id')
+        # 打开数据库连接
+        db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
+        # 使用 cursor() 方法创建一个游标对象 cursor，获取对应的user
+        cur = db.cursor()
+        cur.execute('''select * from users where user_id=%s''', user_id)
+        test_user = cur.fetchone()
+        # 验证token是否一致，不一致就return
+        if str(request.form['auth_token']) != test_user[12]:
+            return jsonify(status='error', error='authentication failed')
+        # 获取帖子的id用来命名图片
+        cur.execute('''select max(id) from mission''')
+        post_id = int(cur.fetchone()[0]) + 1
+        db.close()
+        # 保存图片
+        p1_name = None
+        p2_name = None
+        p3_name = None
+        if picture_num >= 1 and allowed_file(picture_1.filename):
+            p1_name = secure_filename(picture_1.filename)
+            p1_name = 'post_id_' + str(post_id) + '_picture_1' + '.' + p1_name.rsplit('.', 1)[1].lower()
+            picture_1.save(os.path.join('''./static/mission_pictures''', p1_name))
+
+        if picture_num >= 2 and allowed_file(picture_2.filename):
+            p2_name = secure_filename(picture_2.filename)
+            p2_name = 'post_id_' + str(post_id) + '_picture_2' + '.' + p2_name.rsplit('.', 1)[1].lower()
+            picture_2.save(os.path.join('''./static/mission_pictures''', p2_name))
+
+        if picture_num >= 3 and allowed_file(picture_3.filename):
+            p3_name = secure_filename(picture_3.filename)
+            p3_name = 'post_id_' + str(post_id) + '_picture_3' + '.' + p3_name.rsplit('.', 1)[1].lower()
+            picture_3.save(os.path.join('''./static/mission_pictures''', p3_name))
+
+        error = None
         if content is None:
             error = 'Error content.'
-        if picture_url_1 is None:
-            error = 'Error picture_url_1.'
-        if picture_url_2 is None:
-            error = 'Error picture_url_2.'
-        if picture_url_3 is None:
-            error = 'Error picture_url_3.'
-        if origin is None:
-            error = 'Error origin.'
         if destination is None:
             error = 'Error destination.'
-        if like_number is None:
-            error = 'Error like_number.'
-        if comment_number is None:
-            error = 'Error comment_number.'
-        if id is None:
-            error = 'Error id.'
-        if isdeleted is None:
-            error = 'Error isdeleted.'
-        if endtime is None:
-            error = 'Error endtime.'
+        if end_time is None:
+            error = 'Error deadline.'
         if money is None:
             error = 'Error money.'
-        if evaluate is None:
-            error = 'Error evaluate.'
-        if receiver_id is None:
-            error = 'Error receiver_id.'
 
         if error is None:
-            sql = '''INSERT INTO mission(
-                user_id, 
-                content, 
-                picture_url_1, 
-                picture_url_2, 
-                picture_url_3, 
-                origin, 
-                destination,                           
-                like_number, 
-                comment_number, 
-                id, 
-                isdeleted, 
-                endtime,
-                money,
-                evaluate,
-                receiver_id,) VALUES(
-                    {this_user_id}, 
-                    {this_content}, 
-                    {this_picture_url_1}, 
-                    {this_picture_url_2}, 
-                    {this_picture_url_3}, 
-                    {this_origin}, 
-                    {this_destination}, 
-                    {this_like_number}, 
-                    {this_comment_number}, 
-                    {this_id}, 
-                    {this_isdeleted}, 
-                    {this_endtime}, 
-                    {this_money}, 
-                    {this_evaluate}, 
-                    {this_receiver_id}, 
-                     )'''.format(
-                this_user_id=user_id,
-                this_content=content,
-                this_picture_url_1=picture_url_1,
-                this_picture_url_2=picture_url_2,
-                this_picture_url_3=picture_url_3,
-                this_origin=origin,
-                this_destination=destination,
-                this_like_number=like_number,
-                this_comment_number=comment_number,
-                this_id=id,
-                this_isdeleted=isdeleted,
-                this_endtime=endtime,
-                this_money=money,
-                this_evaluate=evaluate,
-                this_receiver_id=receiver_id)
-            success = up(sql)
-            return jsonify(success=success)
-        return jsonify(error=error)
+            # 打开数据库连接
+            db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
+            # 使用 cursor() 方法创建一个游标对象 cursor
+            cur = db.cursor()
+            try:
+                cur.execute('''INSERT INTO mission(
+                    user_id, 
+                    content, 
+                    picture_url_1, 
+                    picture_url_2, 
+                    picture_url_3, 
+                    origin, 
+                    destination,                           
+                    like_number, 
+                    comment_number, 
+                    end_time,
+                    money) VALUES(
+                        %s, 
+                        %s, 
+                        %s, 
+                        %s, 
+                        %s, 
+                        %s, 
+                        %s, 
+                        %s, 
+                        %s, 
+                        %s,
+                        %s
+                         )''', (1,
+                                content,
+                                p1_name,
+                                p2_name,
+                                p3_name,
+                                origin,
+                                destination,
+                                0,
+                                0,
+                                end_time,
+                                money))
+                db.commit()
+            except:
+                db.rollback()
+            db.close()
+            return jsonify(status='success')
+        return jsonify(status=error)
     return 1
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS

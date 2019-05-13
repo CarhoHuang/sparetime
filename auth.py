@@ -149,12 +149,19 @@ def login():
             key = 'sparetimeforu_key'
             now_second = int((datetime.utcnow() - datetime(1970, 1, 1, 0, 0, 0)).total_seconds())
             second_of_20_days = 1728000
-            auth_token = jwt.encode({'email': user[2], 'exp': now_second + second_of_20_days}, key,
+            auth_token = jwt.encode({'user_id': user[0], 'exp': now_second + second_of_20_days}, key,
                                     algorithm='HS256')  # 得到的为bytes
+            # 打开数据库连接，把生成的token写入数据库
+            db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
+            cur = db.cursor()
+            cur.execute(
+                '''update users set auth_token = %s where email=%s ''', (str(auth_token), email)
+            )
+            db.commit()
+            db.close()
             user_info = {"nickname": user[3], "signature": user[5],
                          "avatar_url": user[6], "gender": user[1],
                          "phone": user[4], "email": user[2], 'auth_token': str(auth_token)}
-
-            return jsonify({"success": 1, "data": user_info})
-        return jsonify(error=error)
+            return jsonify({"status": 'success', "data": user_info})
+        return jsonify(status='error', error=error)
     return 1
