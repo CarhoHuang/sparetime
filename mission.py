@@ -342,6 +342,7 @@ def insert():
         # 验证token是否一致，不一致就return
         if str(request.form['auth_token']) != test_user[12]:
             return jsonify(status='error', error='authentication failed')
+
         # 获取帖子的id用来命名图片
         cur.execute('''select max(id) from mission''')
         post_id = int(cur.fetchone()[0]) + 1

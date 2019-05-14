@@ -29,5 +29,8 @@ def create_app(test_config=None):
     from . import mission
     app.register_blueprint(mission.bp)
 
+    from . import user
+    app.register_blueprint(user.bp)
+
     app.app_context()
     return app
