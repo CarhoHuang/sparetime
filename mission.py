@@ -295,6 +295,7 @@ def deleteorNot(id, isdeleted):  # 如果删除传入ideleted = 1, 如果恢复 
 def insert():
     if request.method == 'POST':
         try:
+            # 拿出auth_token，裁剪掉前两位和最后一位
             auth_token_str = str(request.form['auth_token'])[2:len(str(request.form['auth_token'])) - 1]
             auth_token = bytes(auth_token_str, 'utf8')
             content = request.form['content']
@@ -345,7 +346,7 @@ def insert():
         cur.execute('''select max(id) from mission''')
         post_id = int(cur.fetchone()[0]) + 1
         db.close()
-        # 保存图片
+        # 重写文件名，保存图片
         p1_name = None
         p2_name = None
         p3_name = None
@@ -403,7 +404,7 @@ def insert():
                         %s, 
                         %s,
                         %s
-                         )''', (1,
+                         )''', (user_id,
                                 content,
                                 p1_name,
                                 p2_name,
