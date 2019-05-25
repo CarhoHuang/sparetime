@@ -52,8 +52,15 @@ def search(sql):
 @bp.route('/get_mission_by_mission_id', methods=('GET', 'POST'))
 def get_mission_by_mission_id():
     if request.method == 'POST':
-        id = request.form['id']
+        try:
+            # 拿出auth_token，裁剪掉前两位和最后一位
+            auth_token_str = str(request.form['auth_token'])[2:len(str(request.form['auth_token'])) - 1]
+            auth_token = bytes(auth_token_str, 'utf8')
+            id = request.form['id']
+        except:
+            return jsonify(status='error', error='Data acquisition failure')
         error = None
+
         if id is None:
             error = 'Error id.'
 
