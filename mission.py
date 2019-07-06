@@ -40,11 +40,12 @@ def search(sql):
             "like_number": row[7],
             "comment_number": row[8],
             "id": row[9],
-            "isdeleted": row[10],
-            "endtime": row[11],
+            "is_deleted": row[10],
+            "end_time": row[11],
             "money": row[12],
             "evaluate": row[13],
-            "receiver_id": row[14]}})
+            "receiver_id": row[14],
+            "is_received":row[15]}})
     return json_data
 
 
@@ -65,7 +66,7 @@ def get_mission_by_mission_id():
             error = 'Error id.'
 
         if error is None:
-            sql = 'select * from mission where id = %s and is_deleted = 0' % (id,)
+            sql = 'select * from mission where id = %s and is_deleted = 0 ' % (id,)
             json_data = search(sql)
             data = {'status': "success", 'posts': json_data}
             return jsonify(data)
@@ -422,13 +423,60 @@ def insert():
                                 0,
                                 0,
                                 end_time,
-                                money))
+                                money
+                                ))
                 db.commit()
             except:
                 db.rollback()
             db.close()
             return jsonify(status='success')
         return jsonify(status=error)
+    return 1
+
+
+# 刷新任务目的地点获取任务的详细信息
+@bp.route('/refresh_newest', methods=('GET', 'POST'))
+def refresh():
+    if request.method == 'POST':
+        try:
+            destination = request.form['destination']
+            tempid = int(request.form['biggest_id'])
+        except:
+            return jsonify(status='error', error='Data acquisition failure')
+
+        # 打开数据库连接
+        db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
+        # 使用 cursor() 方法创建一个游标对象 cursor，获取对应的user
+        cur = db.cursor()
+        # 获取帖子的最大id
+        cur.execute('''select max(id) from mission''')
+        id = int(cur.fetchone()[0])
+        db.close()
+        error = None
+        if destination is None:
+            error = 'Error destination.'
+        if tempid is None:
+            error = 'Error before'
+
+        if error is None:
+            if destination == '随机':
+                if id > tempid:
+                    json_data2 = search('select * from mission where id > '+str(tempid)+' and is_received = 0 and end_time > current_timestamp limit 40')
+                else:
+                    data = {'status': "false"}
+                    return jsonify(data)
+
+            else:
+                print(tempid,destination)
+                if id > tempid:
+                    json_data2 = search('select * from mission where id > '+str(tempid)+' and destination = '+'destination'+' and is_received = 0 and end_time > current_timestamp limit 40')
+                else:
+                    data = {'status': "false"}
+                    return jsonify(data)
+
+            data={'status': "success", 'data': json_data2}
+            return jsonify(data)
+        return jsonify(error=error)
     return 1
 
 
