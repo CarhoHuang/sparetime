@@ -1,18 +1,17 @@
 import random
 import smtplib
-import jwt
 from datetime import datetime
-from email.header import Header
-from email.mime.text import MIMEText
 
+import jwt
 import pymysql
-from flask import (
-    Blueprint, request, jsonify
-)
-from werkzeug.security import check_password_hash, generate_password_hash
-from dbconfig import *
+from flask import (request, jsonify, current_app)
+from werkzeug.security import check_password_hash
 
-bp = Blueprint('auth', __name__, url_prefix='/auth')
+from dbconfig import *
+from . import bp
+from .. import db
+from ..email import EmailSender
+from ..models import User, VCode
 
 
 @bp.route('/signup', methods=('GET', 'POST'))
@@ -24,11 +23,6 @@ def signup():
         password2 = request.form['password2']
         verification_code = request.form['verification_code']
         error = None
-
-        # 打开数据库连接
-        db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
-        # 使用 cursor() 方法创建一个游标对象 cursor
-        cur = db.cursor()
 
         if not username:
             error = 'Username is required.'
@@ -45,17 +39,17 @@ def signup():
         elif str(email).find('@stu.edu.cn') == 0:
             error = 'Not STU email.'
 
-        if cur.execute('select * from users where email = %s', (email,)) > 0:
+        if len(User.query.filter_by(email=email).all()) > 0:
             error = 'User is existed.'
 
-        if cur.execute('select * from verification_code where email = %s', (email,)) > 0:
-            v_codes = cur.fetchall()
-            time_code = v_codes[len(v_codes) - 1][2]  # 取最后一条记录的时间，再转为datetime
+        if len(VCode.query.filter_by(email=email).all()) > 0:
+            v_codes = VCode.query.filter_by(email=email).all()
+            time_code = v_codes[len(v_codes) - 1].time  # 取最后一条记录的时间，再转为datetime
             time_now = datetime.now()
 
             real_v_code = ''
             if (time_now - time_code).total_seconds() <= 15 * 60:  # 时间少于15分钟才算
-                real_v_code = str(v_codes[len(v_codes) - 1][1])
+                real_v_code = str(v_codes[len(v_codes) - 1].verification_code)
             print('用户v_code：' + verification_code)
             print('数据库v_code：' + real_v_code)
             if verification_code != real_v_code:
@@ -64,59 +58,31 @@ def signup():
             error = '还没有发送验证码！'
 
         if error is None:
-            cur.execute(
-                'insert into users (nickname,hash_pw,email) values (%s,%s,%s)',
-                (username, generate_password_hash(password1), email,)
-            )
-            db.commit()
-            # disconnect mysql
-            db.close()
+            e_sender = EmailSender()
+            e_sender.send_mail(to=email, subject='注册成功', template='mail/sign_up_success', username=username)
+            user = User(nickname=username, password=password1, email=email)
+            db.session.add(user)
             return jsonify(status='success')
         return jsonify(status='error', error=error)
     elif request.method == 'POST' and request.form['request_type'] == 'send_verification_code':  # 验证码
         email = request.form['email']
 
-        # 查是否重复注册，打开数据库连接
-        db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
-        # 使用 cursor() 方法创建一个游标对象 cursor
-        cur = db.cursor()
+        # 查是否重复注册
         error = None
-        if cur.execute('select * from users where email = %s', (email,)) > 0:
+        if len(User.query.filter_by(email=email).all()) > 0:
             error = 'User is existed.'
-
         if error is None:
-            # 第三方 SMTP 服务
-            mail_host = "smtp.qq.com"  # 设置服务器
-            mail_user = "1542029827@qq.com"  # 用户名
-            mail_pass = "hqzfpfsukqvifgdf"  # 口令
-
-            sender = '1542029827@qq.com'
-            receivers = [email]  # 接收邮件，可设置为你的QQ邮箱或者其他邮箱
             verification_code = random.randint(1000, 9999)
-
-            message = MIMEText('你的验证码为：' + verification_code.__str__() + '。请不要把验证码泄露给其他人！15分钟内有效。 【汕大顺手邦】',
-                               'plain', 'utf-8')
-            message['From'] = Header('汕大顺手邦', 'utf-8')
-            message['To'] = Header(receivers[0], 'utf-8')
-            message['Subject'] = Header('【汕大顺手邦】验证码', 'utf-8')
-
+            e_sender = EmailSender()
             try:
-                smtp_obj = smtplib.SMTP()
-                smtp_obj.connect(mail_host, 25)
-                smtp_obj.login(mail_user, mail_pass)
-                smtp_obj.sendmail(sender, receivers, message.as_string())
-                cur.execute('insert into verification_code (email, verification_code) values (%s,%s)',
-                            (email, verification_code,))
-                db.commit()
-                # disconnect mysql
-                db.close()
+                e_sender.send_mail(to=email, subject='注册验证码', template='mail/sign_up',
+                                   verification_code=verification_code)
+                vcode = VCode(email=email, verification_code=verification_code)
+                db.session.add(vcode)
                 return jsonify(status='success')
             except smtplib.SMTPException:
                 return jsonify(status='error', error='send email fail!')
         else:
-            db.commit()
-            # disconnect mysql
-            db.close()
             return jsonify(status='error', error=error)
     return jsonify(status='error', error='other error')  # 两种请求之外的其他情况
 
@@ -146,7 +112,7 @@ def login():
             error = 'Incorrect password.'
 
         if error is None:
-            key = 'sparetimeforu_key'
+            key = current_app.config['SECRET_KEY']
             now_second = int((datetime.utcnow() - datetime(1970, 1, 1, 0, 0, 0)).total_seconds())
             second_of_20_days = 1728000
             auth_token = jwt.encode({'user_id': user[0], 'exp': now_second + second_of_20_days}, key,
@@ -161,7 +127,7 @@ def login():
             db.close()
             user_info = {"nickname": user[3], "signature": user[5],
                          "avatar_url": user[6], "gender": user[1],
-                         "phone": user[4], "email": user[2], 'auth_token': str(auth_token)}
+                         "phone": user[4], "email": user[2], 'auth_token': str(auth_token), 'bg_url': user[13]}
             return jsonify({"status": 'success', "data": user_info})
         return jsonify(status='error', error=error)
     return 1

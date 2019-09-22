@@ -1,16 +1,17 @@
 # 引用包
 import os
-import pymysql
-import jwt
 from datetime import datetime
-from werkzeug.utils import secure_filename
+
+import jwt
+import pymysql
 from flask import (
-    Blueprint, request, jsonify
+    request, jsonify
 )
+from werkzeug.utils import secure_filename
 
 from dbconfig import *
+from . import bp
 
-bp = Blueprint('mission', __name__, url_prefix='/mission')
 # 上传图片相关
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
@@ -45,7 +46,7 @@ def search(sql):
             "money": row[12],
             "evaluate": row[13],
             "receiver_id": row[14],
-            "is_received":row[15]}})
+            "is_received": row[15]}})
     return json_data
 
 
@@ -461,20 +462,22 @@ def refresh():
         if error is None:
             if destination == '随机':
                 if id > tempid:
-                    json_data2 = search('select * from mission where id > '+str(tempid)+' and is_received = 0 and end_time > current_timestamp limit 40')
+                    json_data2 = search('select * from mission where id > ' + str(
+                        tempid) + ' and is_received = 0 and end_time > current_timestamp limit 40')
                 else:
                     data = {'status': "false"}
                     return jsonify(data)
 
             else:
-                print(tempid,destination)
+                print(tempid, destination)
                 if id > tempid:
-                    json_data2 = search('select * from mission where id > '+str(tempid)+' and destination = '+'destination'+' and is_received = 0 and end_time > current_timestamp limit 40')
+                    json_data2 = search('select * from mission where id > ' + str(
+                        tempid) + ' and destination = ' + 'destination' + ' and is_received = 0 and end_time > current_timestamp limit 40')
                 else:
                     data = {'status': "false"}
                     return jsonify(data)
 
-            data={'status': "success", 'data': json_data2}
+            data = {'status': "success", 'data': json_data2}
             return jsonify(data)
         return jsonify(error=error)
     return 1

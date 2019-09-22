@@ -1,12 +1,11 @@
 # 引用包
-import functools, pymysql
+import pymysql
 from flask import (
-    Blueprint, flash, g, request, session, url_for, json, jsonify
+    Blueprint, request, jsonify
 )
-from werkzeug.security import check_password_hash, generate_password_hash
+from . import bp
 from dbconfig import *
 
-bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 # 遍历数据库返回所有符合条件的行
 @bp.route('/search', methods=('GET', 'POST'))
@@ -23,19 +22,19 @@ def search(sql):
     json_data = []
     for row in user:
         json_data.append({
-                     "BeginLocation": row[0],
-                     "EndLocation": row[1],
-                     "BeginTime": row[2],
-                     "EndTime": row[3],
-                     "label": row[4],
-                     "description": row[5],
-                     "photo_location": row[6],
-                     "ReleaseUser_id": row[7],
-                     "AcceptUser_id": row[8],
-                     "Money": row[9],
-                     "if_finish": row[10],
-                     "evaluate": row[11],
-                     "Mission_id": row[12]})
+            "BeginLocation": row[0],
+            "EndLocation": row[1],
+            "BeginTime": row[2],
+            "EndTime": row[3],
+            "label": row[4],
+            "description": row[5],
+            "photo_location": row[6],
+            "ReleaseUser_id": row[7],
+            "AcceptUser_id": row[8],
+            "Money": row[9],
+            "if_finish": row[10],
+            "evaluate": row[11],
+            "Mission_id": row[12]})
 
     return json_data
 
@@ -49,8 +48,8 @@ def getAdministratorsByUser_id(user_id):
             error = 'Error User_id.'
 
         if error is None:
-
-            sql = 'select * from Administrators where user_id = {this_user_id} AND ifShow = 1'.format(this_user_id = user_id)
+            sql = 'select * from Administrators where user_id = {this_user_id} AND ifShow = 1'.format(
+                this_user_id=user_id)
             json_data = search(sql)
             data = {"success": 1, "data": json_data}
 
@@ -70,8 +69,8 @@ def getAdmByAdm_id(Administrators_id):
             error = 'Error Administrators_id.'
 
         if error is None:
-
-            sql = 'select * from Administrators where Administrators_id = {this_Administrators_id} AND ifShow = 1'.format(this_Administrators_id = Administrators_id)
+            sql = 'select * from Administrators where Administrators_id = {this_Administrators_id} AND ifShow = 1'.format(
+                this_Administrators_id=Administrators_id)
             json_data = search(sql)
             data = {"success": 1, "data": json_data}
 
@@ -106,8 +105,8 @@ def deleteOrNot(Administrators_id, ifShowFlag):  # 如果删除传入ifShowFlag 
             error = 'Error Administrators_id.'
 
         if error is None:
-
-            sql = 'update Administrators set ifShow = {this_ifShowFlag} where Administrators_id = {this_Administrators_id}'.format(this_ifShowFlag = ifShowFlag, this_Administrators_id = Administrators_id)
+            sql = 'update Administrators set ifShow = {this_ifShowFlag} where Administrators_id = {this_Administrators_id}'.format(
+                this_ifShowFlag=ifShowFlag, this_Administrators_id=Administrators_id)
             success = up(sql)
 
             return jsonify(success=success)
@@ -128,8 +127,8 @@ def insert(user_id, Adminstrators_id):
             error = 'Error Adminstrators_id.'
 
         if error is None:
-
-            sql = 'INSERT INTO Administrators(user_id, Administrators, ifShow) VALUES({this_user_id}, {this_Administrators}, 1)'.format(this_user_id = user_id, this_Administrators = Adminstrators_id)
+            sql = 'INSERT INTO Administrators(user_id, Administrators, ifShow) VALUES({this_user_id}, {this_Administrators}, 1)'.format(
+                this_user_id=user_id, this_Administrators=Adminstrators_id)
             success = up(sql)
 
             return jsonify(success=success)

@@ -1,20 +1,21 @@
-import jwt
 import os
 import random
 import smtplib
+from datetime import datetime
 from email.header import Header
 from email.mime.text import MIMEText
+
+import jwt
 import pymysql
-from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash
-from datetime import datetime
 from flask import (
-    Blueprint, request, jsonify
+    request, jsonify
 )
+from werkzeug.security import generate_password_hash
+from werkzeug.utils import secure_filename
 
 from dbconfig import *
+from . import bp
 
-bp = Blueprint('user', __name__, url_prefix='/user')
 # 上传图片相关
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
@@ -175,7 +176,7 @@ def modify_personal_bg():
             db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
             # 使用 cursor() 方法创建一个游标对象 cursor，获取对应的user
             cur = db.cursor()
-            cur.execute('''update users set personal_background_url=%s where user_id=%s''',
+            cur.execute('''update users set bg_url=%s where user_id=%s''',
                         (bg_name, user_id))
             db.commit()
             db.close()
