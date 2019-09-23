@@ -2,19 +2,19 @@ import os
 import random
 import smtplib
 from datetime import datetime
-from email.header import Header
-from email.mime.text import MIMEText
 
 import jwt
 import pymysql
 from flask import (
-    request, jsonify
+    request, jsonify, current_app
 )
-from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 
 from dbconfig import *
 from . import bp
+from .. import db
+from ..email import EmailSender
+from ..models import User, VCode
 
 # 上传图片相关
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -37,21 +37,19 @@ def modify_profile():
 
         # 通过token获取用户
         try:
-            key = 'sparetimeforu_key'
+            key = current_app.config['SECRET_KEY']
             user_json = jwt.decode(auth_token, key, algorithms=['HS256'])
         except:
-            return jsonify(status='error', error='decode failed')
+            return jsonify(status='error', error='auth_token decode failed')
         # 判断该token是否跟解析出来的用户token一致
         user_id = user_json.get('user_id')
         # 打开数据库连接
-        db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
-        # 使用 cursor() 方法创建一个游标对象 cursor，获取对应的user
-        cur = db.cursor()
-        cur.execute('''select * from users where user_id=%s''', user_id)
-        test_user = cur.fetchone()
+
+        user = User.query.filter_by(user_id=user_id).first()
         # 验证token是否一致，不一致就return
-        if str(request.form['auth_token']) != test_user[12]:
-            return jsonify(status='error', error='authentication failed')
+        if str(request.form['auth_token']) != user.auth_token:
+            return jsonify(status='error', error='token authenticate failed')
+
         error = None
         if nickname is None:
             error = 'Error nickname'
@@ -63,14 +61,12 @@ def modify_profile():
             error = 'Error signature'
 
         if error is None:
-            # 打开数据库连接
-            db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
-            # 使用 cursor() 方法创建一个游标对象 cursor，获取对应的user
-            cur = db.cursor()
-            cur.execute('''update users set nickname=%s,gender=%s,phone=%s,signature=%s where user_id=%s''',
-                        (nickname, gender, phone, signature, user_id))
-            db.commit()
-            db.close()
+            # 数据库操作
+            user.nickname = nickname
+            user.gender = gender
+            user.phone = phone
+            user.signature = signature
+            db.session.add(user)
             return jsonify(status='success')
         return jsonify(status='error', error=error)
 
@@ -91,21 +87,17 @@ def modify_avatar():
 
         # 通过token获取用户
         try:
-            key = 'sparetimeforu_key'
+            key = current_app.config['SECRET_KEY']
             user_json = jwt.decode(auth_token, key, algorithms=['HS256'])
         except:
-            return jsonify(status='error', error='decode failed')
+            return jsonify(status='error', error='token decode failed')
         # 判断该token是否跟解析出来的用户token一致
         user_id = user_json.get('user_id')
         # 打开数据库连接
-        db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
-        # 使用 cursor() 方法创建一个游标对象 cursor，获取对应的user
-        cur = db.cursor()
-        cur.execute('''select * from users where user_id=%s''', user_id)
-        test_user = cur.fetchone()
+        user = User.query.filter_by(user_id=user_id).first()
         # 验证token是否一致，不一致就return
-        if str(request.form['auth_token']) != test_user[12]:
-            return jsonify(status='error', error='authentication failed')
+        if str(request.form['auth_token']) != user.auth_token:
+            return jsonify(status='error', error='token authenticate failed')
 
         error = None
         if avatar_file is None:
@@ -116,16 +108,12 @@ def modify_avatar():
             now_second = int((datetime.utcnow() - datetime(1970, 1, 1, 0, 0, 0)).total_seconds())
             avatar_name = 'user_id_' + str(user_id) + '_' + str(now_second) + '.' + \
                           avatar_name.rsplit('.', 1)[1].lower()
-            avatar_file.save(os.path.join('''./static/avatar''', avatar_name))
+            avatar_file.save(os.path.join('./app/static/avatar', avatar_name))
 
-            # 打开数据库连接
-            db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
-            # 使用 cursor() 方法创建一个游标对象 cursor，获取对应的user
-            cur = db.cursor()
-            cur.execute('''update users set avatar_url=%s where user_id=%s''',
-                        (avatar_name, user_id))
-            db.commit()
-            db.close()
+            # 打开数据库操作
+            user.avatar_url = avatar_name
+            db.session.add(user)
+
             return jsonify(status='success')
         return jsonify(status='error', error=error)
     return jsonify(status='error', error='method error')
@@ -145,21 +133,18 @@ def modify_personal_bg():
 
         # 通过token获取用户
         try:
-            key = 'sparetimeforu_key'
+            key = current_app.config['SECRET_KEY']
             user_json = jwt.decode(auth_token, key, algorithms=['HS256'])
         except:
             return jsonify(status='error', error='decode failed')
         # 判断该token是否跟解析出来的用户token一致
         user_id = user_json.get('user_id')
         # 打开数据库连接
-        db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
-        # 使用 cursor() 方法创建一个游标对象 cursor，获取对应的user
-        cur = db.cursor()
-        cur.execute('''select * from users where user_id=%s''', user_id)
-        test_user = cur.fetchone()
+
+        user = User.query.filter_by(user_id=user_id).first()
         # 验证token是否一致，不一致就return
-        if str(request.form['auth_token']) != test_user[12]:
-            return jsonify(status='error', error='authentication failed')
+        if str(request.form['auth_token']) != user.auth_token:
+            return jsonify(status='error', error='token authenticate failed')
 
         error = None
         if bg_file is None:
@@ -170,16 +155,11 @@ def modify_personal_bg():
             now_second = int((datetime.utcnow() - datetime(1970, 1, 1, 0, 0, 0)).total_seconds())
             bg_name = 'user_id_' + str(user_id) + '_' + str(now_second) + '.' + \
                       bg_name.rsplit('.', 1)[1].lower()
-            bg_file.save(os.path.join('''./static/personal_background''', bg_name))
+            bg_file.save(os.path.join('''./app/static/personal_background''', bg_name))
 
             # 打开数据库连接
-            db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
-            # 使用 cursor() 方法创建一个游标对象 cursor，获取对应的user
-            cur = db.cursor()
-            cur.execute('''update users set bg_url=%s where user_id=%s''',
-                        (bg_name, user_id))
-            db.commit()
-            db.close()
+            user.bg_url = bg_name
+            db.session.add(user)
             return jsonify(status='success')
         return jsonify(status='error', error=error)
     return jsonify(status='error', error='method error')  # is not post method
@@ -190,53 +170,25 @@ def modify_personal_bg():
 def change_password():
     if request.method == 'POST':
         if request.form['request_type'] == 'send_verification_code':
-            try:
-                email = request.form['email']
-            except:
-                return jsonify(status='error', error='Failure to obtain data')
+            email = request.form['email']
 
+            # 查是否重复注册
             error = None
-            if email is None:
-                error = 'Error email'
-            # 查用户是否存在
-            db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
-            # 使用 cursor() 方法创建一个游标对象 cursor
-            cur = db.cursor()
-            error = None
-            if cur.execute('select * from users where email = %s', (email,)) <= 0:
+            if len(User.query.filter_by(email=email).all()) <= 0:
                 error = 'User is not existed.'
-
             if error is None:
-                # 第三方 SMTP 服务
-                mail_host = "smtp.qq.com"  # 设置服务器
-                mail_user = "1542029827@qq.com"  # 用户名
-                mail_pass = "hqzfpfsukqvifgdf"  # 口令
-
-                sender = '1542029827@qq.com'
-                receivers = [email]  # 接收邮件，可设置为你的QQ邮箱或者其他邮箱
                 verification_code = random.randint(1000, 9999)
-
-                message = MIMEText('你的验证码为：' + verification_code.__str__() + '。请不要把验证码泄露给其他人！15分钟内有效。 【汕大顺手邦】',
-                                   'plain', 'utf-8')
-                message['From'] = Header('汕大顺手邦', 'utf-8')
-                message['To'] = Header(receivers[0], 'utf-8')
-                message['Subject'] = Header('【汕大顺手邦】验证码', 'utf-8')
-
+                e_sender = EmailSender()
                 try:
-                    smtp_obj = smtplib.SMTP()
-                    smtp_obj.connect(mail_host, 25)
-                    smtp_obj.login(mail_user, mail_pass)
-                    smtp_obj.sendmail(sender, receivers, message.as_string())
-                    cur.execute('insert into verification_code (email, verification_code) values (%s,%s)',
-                                (email, verification_code,))
-                    db.commit()
-                    # disconnect mysql
-                    db.close()
-                    return jsonify(status='success', info='send_verification_code')
+                    e_sender.send_mail(to=email, subject='忘记密码验证码', template='mail/sign_up',
+                                       verification_code=verification_code)
+                    vcode = VCode(email=email, verification_code=verification_code)
+                    db.session.add(vcode)
+                    return jsonify(status='success')
                 except smtplib.SMTPException:
                     return jsonify(status='error', error='send email fail!')
-            db.close()
-            return jsonify(status='error', error=error)
+            else:
+                return jsonify(status='error', error=error)
         if request.form['request_type'] == 'change_password':
             try:
                 email = request.form['email']
@@ -247,10 +199,6 @@ def change_password():
                 return jsonify(status='error', error='Failure to obtain data')
 
             error = None
-            # 打开数据库连接
-            db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
-            # 使用 cursor() 方法创建一个游标对象 cursor
-            cur = db.cursor()
 
             if not password1:
                 error = 'Password is required.'
@@ -265,17 +213,17 @@ def change_password():
             elif str(email).find('@stu.edu.cn') == 0:
                 error = 'Not STU email.'
 
-            if cur.execute('select * from users where email = %s', (email,)) <= 0:
+            if len(User.query.filter_by(email=email).all()) <= 0:
                 error = 'User is not existed.'
 
-            if cur.execute('select * from verification_code where email = %s', (email,)) > 0:
-                v_codes = cur.fetchall()
-                time_code = v_codes[len(v_codes) - 1][2]  # 取最后一条记录的时间，再转为datetime
+            if len(VCode.query.filter_by(email=email).all()) > 0:
+                v_codes = VCode.query.filter_by(email=email).all()
+                time_code = v_codes[len(v_codes) - 1].time  # 取最后一条记录的时间，再转为datetime
                 time_now = datetime.now()
 
                 real_v_code = ''
                 if (time_now - time_code).total_seconds() <= 15 * 60:  # 时间少于15分钟才算
-                    real_v_code = str(v_codes[len(v_codes) - 1][1])
+                    real_v_code = str(v_codes[len(v_codes) - 1].verification_code)
                 print('用户v_code：' + verification_code)
                 print('数据库v_code：' + real_v_code)
                 if verification_code != real_v_code:
@@ -284,13 +232,10 @@ def change_password():
                 error = '还没有发送验证码！'
 
             if error is None:
-                cur.execute(
-                    'update users set hash_pw=%s where email=%s',
-                    (generate_password_hash(password1), email)
-                )
-                db.commit()
-                # disconnect mysql
-                db.close()
+                user = User().query.filter_by(email=email).first()
+                user.password = password1
+                db.session.add(user)
+
                 return jsonify(status='success', info='change password')
             return jsonify(status='error', error=error)
     return jsonify(status='error', error='method error')

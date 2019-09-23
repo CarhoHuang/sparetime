@@ -66,7 +66,7 @@ class User(UserMixin, db.Model):
 
 class VCode(db.Model):
     __tablename__ = 'verification_code'
-    email = db.Column(db.String(100), unique=True, index=True, default='')
+    email = db.Column(db.String(100), index=True, default='')
     verification_code = db.Column(db.Integer)
     time = db.Column(db.DateTime, default=datetime.now())
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, unique=True, nullable=False)

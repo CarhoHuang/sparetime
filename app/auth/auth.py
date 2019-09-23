@@ -95,39 +95,27 @@ def login():
         global pw_hash
 
         error = None
-        # 打开数据库连接
-        db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
-        cur = db.cursor()
-        cur.execute(
-            'SELECT * FROM users WHERE email = %s', (email,)
-        )
-        user = cur.fetchone()
-        db.close()
-        if user is not None:
-            pw_hash = user[7]
+        # 打开数据库获取一个用户
+        user = User.query.filter_by(email=email).first()
 
         if user is None:
             error = 'Incorrect email.'
-        elif not check_password_hash(pw_hash, password):
+        elif not user.verify_password(password):
             error = 'Incorrect password.'
 
         if error is None:
             key = current_app.config['SECRET_KEY']
             now_second = int((datetime.utcnow() - datetime(1970, 1, 1, 0, 0, 0)).total_seconds())
             second_of_20_days = 1728000
-            auth_token = jwt.encode({'user_id': user[0], 'exp': now_second + second_of_20_days}, key,
+            auth_token = jwt.encode({'user_id': user.user_id, 'exp': now_second + second_of_20_days}, key,
                                     algorithm='HS256')  # 得到的为bytes
             # 打开数据库连接，把生成的token写入数据库
-            db = pymysql.connect("localhost", DBUser, DBPassword, DBName)
-            cur = db.cursor()
-            cur.execute(
-                '''update users set auth_token = %s where email=%s ''', (str(auth_token), email)
-            )
-            db.commit()
-            db.close()
-            user_info = {"nickname": user[3], "signature": user[5],
-                         "avatar_url": user[6], "gender": user[1],
-                         "phone": user[4], "email": user[2], 'auth_token': str(auth_token), 'bg_url': user[13]}
+            user.auth_token = str(auth_token)
+            db.session.add(user)
+
+            user_info = {"nickname": user.nickname, "signature": user.signature,
+                         "avatar_url": user.avatar_url, "gender": user.gender,
+                         "phone": user.phone, "email": user.email, 'auth_token': str(auth_token), 'bg_url': user.bg_url}
             return jsonify({"status": 'success', "data": user_info})
         return jsonify(status='error', error=error)
     return 1

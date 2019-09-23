@@ -24,13 +24,13 @@ def create_app(config_name):
     login_manager.init_app(app)
 
     # 注册蓝图
-    from app.auth import auth
+    from .auth import auth
     app.register_blueprint(auth.bp)
 
-    from app.mission import mission
+    from .mission import mission
     app.register_blueprint(mission.bp)
 
-    from app.user import user
+    from .user import user
     app.register_blueprint(user.bp)
 
     app.app_context()
