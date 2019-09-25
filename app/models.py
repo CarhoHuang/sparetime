@@ -41,7 +41,7 @@ class User(UserMixin, db.Model):
     avatar_url = db.Column(db.String(100), unique=True, default='')
     hash_pw = db.Column(db.String(128), unique=True)
     wechat = db.Column(db.String(100), unique=True)
-    favor_rate = db.Column(db.Float, default=1.0)
+    favor_rate = db.Column(db.Integer, default=100)
     time = db.Column(db.DateTime, default=datetime.now())
     role = db.Column(db.String(10), default='user')
     auth_token = db.Column(db.String(200))

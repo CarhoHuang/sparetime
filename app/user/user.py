@@ -241,5 +241,40 @@ def change_password():
     return jsonify(status='error', error='method error')
 
 
+@bp.route('/refresh', methods=['GET', 'POST'])
+def refresh():
+    if request.method == 'POST':
+        try:
+            # 拿出auth_token，裁剪掉前两位和最后一位
+            auth_token_str = str(request.form['auth_token'])[2:len(str(request.form['auth_token'])) - 1]
+            auth_token = bytes(auth_token_str, 'utf8')
+        except:
+            return jsonify(status='error', error='Data acquisition failure')
+
+        # 通过token获取用户
+        try:
+            key = current_app.config['SECRET_KEY']
+            user_json = jwt.decode(auth_token, key, algorithms=['HS256'])
+        except:
+            return jsonify(status='error', error='auth_token decode failed')
+        # 判断该token是否跟解析出来的用户token一致
+        user_id = user_json.get('user_id')
+        # 打开数据库连接
+
+        user = User.query.filter_by(user_id=user_id).first()
+        # 验证token是否一致，不一致就return
+        if str(request.form['auth_token']) != user.auth_token:
+            return jsonify(status='error', error='token authenticate failed')
+
+        # 能执行到这里说明验证通过了，返回数据
+        user_info = {"nickname": user.nickname, "signature": user.signature,
+                     "avatar_url": user.avatar_url, "gender": user.gender,
+                     "phone": user.phone, "email": user.email,
+                     'auth_token': user.auth_token, 'bg_url': user.bg_url, 'favourable_rate': user.favor_rate}
+        return jsonify({"status": 'success', "data": user_info})
+
+    return jsonify(status='error', error='method error')
+
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
