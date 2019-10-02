@@ -1,10 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>验证码</title>
-</head>
-<body>
-<h1 class="">您的验证码：{{ verification_code }}</h1>
-</body>
-</html>
+{% extends 'mail/base_email.html' %}
+
+{% block email_content %}
+    <div class="text" style="padding: 0 4em; text-align: center;">
+        <h2>您的验证码：</h2>
+        <p>您好，您的验证码如下，请保存好不要随意给其他人，有效期15分钟。</p>
+        <p><a href="#" class="btn btn-primary">{{ verification_code }}</a></p>
+    </div>
+{% endblock %}

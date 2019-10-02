@@ -10,7 +10,6 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 
-from dbconfig import *
 from . import bp
 from .. import db
 from ..email import EmailSender
@@ -30,10 +29,15 @@ def modify_profile():
             auth_token = bytes(auth_token_str, 'utf8')
             nickname = request.form['nickname']
             gender = request.form['gender']
-            phone = request.form['phone']
             signature = request.form['signature']
         except:
             return jsonify(status='error', error='Data acquisition failure')
+
+        try:
+            phone = request.form['phone']
+        except:
+            phone = ''
+            pass
 
         # 通过token获取用户
         try:
@@ -55,8 +59,6 @@ def modify_profile():
             error = 'Error nickname'
         if gender is None:
             error = 'Error gender'
-        if len(phone) is not 11:
-            error = 'Error phone'
         if signature is None:
             error = 'Error signature'
 

@@ -3,8 +3,8 @@ class Config:
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     STFU_MAIL_SUBJECT_PREFIX = '[STFU]'
-    MAIL_SENDER = 'STFU Admin<1542029827@qq.com>'
-    MAIL_ADMIN = '1542029827@qq.com'
+    MAIL_SENDER = 'STFU Admin<development_team@qq.com>'
+    MAIL_ADMIN = 'development_team@qq.com'
 
     @staticmethod
     def init_app(app):
@@ -17,8 +17,8 @@ class DevelopmentConfig(Config):
     MAIL_PORT = 465
     MAIL_USE_SSL = True
     MAIL_USE_TLS = False
-    MAIL_USERNAME = '1542029827@qq.com'
-    MAIL_PASSWORD = 'hqzfpfsukqvifgdf'
+    MAIL_USERNAME = 'development_team@qq.com'
+    MAIL_PASSWORD = 'pofxzfsrkytzegcb'
     SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:154202@localhost/ceshi'
 
 

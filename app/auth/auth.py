@@ -3,11 +3,8 @@ import smtplib
 from datetime import datetime
 
 import jwt
-import pymysql
 from flask import (request, jsonify, current_app)
-from werkzeug.security import check_password_hash
 
-from dbconfig import *
 from . import bp
 from .. import db
 from ..email import EmailSender
