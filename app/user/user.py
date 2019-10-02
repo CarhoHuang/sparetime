@@ -182,8 +182,8 @@ def change_password():
                 verification_code = random.randint(1000, 9999)
                 e_sender = EmailSender()
                 try:
-                    e_sender.send_mail(to=email, subject='忘记密码验证码', template='mail/sign_up',
-                                       verification_code=verification_code)
+                    e_sender.send_picture_mail(to=email, subject='忘记密码验证码', template='mail/sign_up',
+                                               verification_code=verification_code)
                     vcode = VCode(email=email, verification_code=verification_code)
                     db.session.add(vcode)
                     return jsonify(status='success')

@@ -6,6 +6,108 @@ from datetime import datetime
 
 
 # 定义模型
+class SearchThing(db.Model):
+    __tablename__ = 'search_things'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
+    content = db.Column(db.String(1000))
+    picture_url_1 = db.Column(db.String(100), default='')
+    picture_url_2 = db.Column(db.String(100), default='')
+    picture_url_3 = db.Column(db.String(100), default='')
+    like_number = db.Column(db.Integer, default=0)
+    comment_number = db.Column(db.Integer, default=0)
+    is_deleted = db.Column(db.Integer, default=0)
+    is_solved = db.Column(db.Integer, default=0)
+    release_time = db.Column(db.DateTime, default=datetime.now)
+
+    # 生成虚拟帖子
+    @staticmethod
+    def generate_fake(count=100):
+        from random import seed, randint
+        import forgery_py
+
+        seed()
+        user_count = User.query.count()
+        for i in range(count):
+            u = User.query.offset(randint(0, user_count - 1)).first()
+            p = SearchThing(content=forgery_py.lorem_ipsum.sentences(randint(1, 3)),
+                            release_time=forgery_py.date.date(True),
+                            user=u)
+            db.session.add(p)
+            db.session.commit()
+
+    def __repr__(self):
+        return '<SearchThing %r>' % self.content
+
+
+class Study(db.Model):
+    __tablename__ = 'studies'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
+    content = db.Column(db.String(1000))
+    picture_url_1 = db.Column(db.String(100), default='')
+    picture_url_2 = db.Column(db.String(100), default='')
+    picture_url_3 = db.Column(db.String(100), default='')
+    like_number = db.Column(db.Integer, default=0)
+    comment_number = db.Column(db.Integer, default=0)
+    is_deleted = db.Column(db.Integer, default=0)
+    is_solved = db.Column(db.Integer, default=0)
+    release_time = db.Column(db.DateTime, default=datetime.now)
+
+    # 生成虚拟帖子
+    @staticmethod
+    def generate_fake(count=100):
+        from random import seed, randint
+        import forgery_py
+
+        seed()
+        user_count = User.query.count()
+        for i in range(count):
+            u = User.query.offset(randint(0, user_count - 1)).first()
+            p = Study(content=forgery_py.lorem_ipsum.sentences(randint(1, 3)),
+                      release_time=forgery_py.date.date(True),
+                      user=u)
+            db.session.add(p)
+            db.session.commit()
+
+    def __repr__(self):
+        return '<Study %r>' % self.content
+
+
+class IdleThing(db.Model):
+    __tablename__ = 'idle_things'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
+    content = db.Column(db.String(1000))
+    picture_url_1 = db.Column(db.String(100), default='')
+    picture_url_2 = db.Column(db.String(100), default='')
+    picture_url_3 = db.Column(db.String(100), default='')
+    like_number = db.Column(db.Integer, default=0)
+    comment_number = db.Column(db.Integer, default=0)
+    is_deleted = db.Column(db.Integer, default=0)
+    money = db.Column(db.Integer, default=2)
+    release_time = db.Column(db.DateTime, default=datetime.now)
+
+    # 生成虚拟帖子
+    @staticmethod
+    def generate_fake(count=100):
+        from random import seed, randint
+        import forgery_py
+
+        seed()
+        user_count = User.query.count()
+        for i in range(count):
+            u = User.query.offset(randint(0, user_count - 1)).first()
+            p = IdleThing(content=forgery_py.lorem_ipsum.sentences(randint(1, 3)),
+                          release_time=forgery_py.date.date(True),
+                          user=u)
+            db.session.add(p)
+            db.session.commit()
+
+    def __repr__(self):
+        return '<IdleThing %r>' % self.content
+
+
 class Mission(db.Model):
     __tablename__ = 'missions'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -43,7 +145,7 @@ class Mission(db.Model):
             db.session.commit()
 
     def __repr__(self):
-        return '<Role %r>' % self.content
+        return '<Mission %r>' % self.content
 
 
 class User(UserMixin, db.Model):
@@ -51,10 +153,10 @@ class User(UserMixin, db.Model):
     user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     gender = db.Column(db.String(100), default='男')
     email = db.Column(db.String(100), unique=True, index=True)
-    nickname = db.Column(db.String(100), unique=True, index=True)
+    nickname = db.Column(db.String(100), index=True, default='萌新')
     phone = db.Column(db.String(100), index=True, default='')
     signature = db.Column(db.String(100), default='')
-    avatar_url = db.Column(db.String(100), default='')
+    avatar_url = db.Column(db.String(100), default='default.png')
     hash_pw = db.Column(db.String(128), default='')
     wechat = db.Column(db.String(100), default='')
     favor_rate = db.Column(db.Integer, default=100)
@@ -64,6 +166,9 @@ class User(UserMixin, db.Model):
     bg_url = db.Column(db.String(200))
 
     missions = db.relationship('Mission', backref='user', lazy='dynamic')
+    idle_things = db.relationship('IdleThing', backref='user', lazy='dynamic')
+    studies = db.relationship('Study', backref='user', lazy='dynamic')
+    search_things = db.relationship('SearchThing', backref='user', lazy='dynamic')
 
     @property
     def password(self):

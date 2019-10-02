@@ -56,7 +56,7 @@ def signup():
 
         if error is None:
             e_sender = EmailSender()
-            e_sender.send_mail(to=email, subject='注册成功', template='mail/sign_up_success', username=username)
+            e_sender.send_picture_mail(to=email, subject='注册成功', template='mail/sign_up_success', username=username)
             user = User(nickname=username, password=password1, email=email)
             db.session.add(user)
             return jsonify(status='success')
@@ -72,8 +72,8 @@ def signup():
             verification_code = random.randint(1000, 9999)
             e_sender = EmailSender()
             try:
-                e_sender.send_mail(to=email, subject='注册验证码', template='mail/sign_up',
-                                   verification_code=verification_code)
+                e_sender.send_picture_mail(to=email, subject='注册验证码', template='mail/sign_up',
+                                           verification_code=verification_code)
                 vcode = VCode(email=email, verification_code=verification_code)
                 db.session.add(vcode)
                 return jsonify(status='success')
@@ -116,4 +116,4 @@ def login():
                          'auth_token': str(auth_token), 'bg_url': user.bg_url, 'favourable_rate': user.favor_rate}
             return jsonify({"status": 'success', "data": user_info})
         return jsonify(status='error', error=error)
-    return 1
+    return jsonify(status='error', error='other error')

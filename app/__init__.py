@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, url_for
 from flask_login import LoginManager
 from flask_mail import Mail
 from flask_sqlalchemy import SQLAlchemy
@@ -16,23 +16,33 @@ def create_app(config_name):
 
     @app.route('/')
     def index():
-        return render_template('mail/base_email.html')
+        return render_template('mail/base_email.html', img_1=url_for('static', filename='images/bg_1.jpg'),
+                               img_2=url_for('static', filename='images/work-1.jpg'),
+                               img_3=url_for('static', filename='images/work-2.jpg'))
 
     @app.errorhandler(404)
     def page_not_found(e):
-        return render_template('mail/base_email.html'), 404
+        return render_template('mail/base_email.html', img_1=url_for('static', filename='images/bg_1.jpg'),
+                               img_2=url_for('static', filename='images/work-1.jpg'),
+                               img_3=url_for('static', filename='images/work-2.jpg')), 404
 
     @app.errorhandler(403)
     def page_not_found(e):
-        return render_template('mail/base_email.html'), 403
+        return render_template('mail/base_email.html', img_1=url_for('static', filename='images/bg_1.jpg'),
+                               img_2=url_for('static', filename='images/work-1.jpg'),
+                               img_3=url_for('static', filename='images/work-2.jpg')), 403
 
     @app.errorhandler(500)
     def internal_server_error(e):
-        return render_template('mail/base_email.html'), 500
+        return render_template('mail/base_email.html', img_1=url_for('static', filename='images/bg_1.jpg'),
+                               img_2=url_for('static', filename='images/work-1.jpg'),
+                               img_3=url_for('static', filename='images/work-2.jpg')), 500
 
     @app.errorhandler(502)
     def internal_server_error(e):
-        return render_template('mail/base_email.html'), 502
+        return render_template('mail/base_email.html', img_1=url_for('static', filename='images/bg_1.jpg'),
+                               img_2=url_for('static', filename='images/work-1.jpg'),
+                               img_3=url_for('static', filename='images/work-2.jpg')), 502
 
     # 设置配置信息
     app.config.from_object(config[config_name])
@@ -49,6 +59,15 @@ def create_app(config_name):
 
     from .mission import mission
     app.register_blueprint(mission.bp)
+
+    from .idle_thing import idle_thing
+    app.register_blueprint(idle_thing.bp)
+
+    from .study import study
+    app.register_blueprint(study.bp)
+
+    from .search_thing import search_thing
+    app.register_blueprint(search_thing.bp)
 
     from .user import user
     app.register_blueprint(user.bp)

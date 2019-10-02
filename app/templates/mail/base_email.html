@@ -7,6 +7,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge"> <!-- Use the latest (edge) version of IE rendering engine -->
     <meta name="x-apple-disable-message-reformatting">  <!-- Disable auto-scale in iOS 10 Mail entirely -->
     <title></title> <!-- The title tag shows in email notifications, like Android 4.4. -->
+    <link rel="shortcut icon"
+          href="{{ url_for('static',filename='favicon.ico') }}"
+          type="image/x-icon">
+    <link rel="icon"
+          href="{{ url_for('static',filename='favicon.ico') }}"
+          type="image/x-icon">
 
     <!-- CSS Reset : BEGIN -->
     <style>
@@ -490,8 +496,8 @@
                 </td>
             </tr><!-- end tr -->
             <tr>
-                <td valign="middle" class="hero bg_white"
-                    style="background-image: url({{ url_for('static',filename='images/bg_1.jpg') }}); background-size: cover; height: 400px;">
+                <td valign="middle" class="hero bg_dark"
+                    style="background-image: url({{ img_1 }}); background-size: cover; height: 400px;">
                     <div class="overlay"></div>
                     <table>
                         <tr>
@@ -519,7 +525,7 @@
                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                     <tr>
                                         <td>
-                                            <img src="{{ url_for('static',filename='images/work-1.jpg') }}" alt=""
+                                            <img src="{{ img_2 }}" alt=""
                                                  style="width: 100%; max-width: 600px; height: auto; margin: auto; display: block;">
                                         </td>
                                     </tr>
@@ -537,7 +543,7 @@
                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                     <tr>
                                         <td>
-                                            <img src="{{ url_for('static',filename='images/work-2.jpg') }}" alt=""
+                                            <img src="{{ img_3 }}" alt=""
                                                  style="width: 100%; max-width: 600px; height: auto; margin: auto; display: block;">
                                         </td>
                                     </tr>
@@ -579,13 +585,8 @@
                                         <td style="text-align: left; padding-left: 5px; padding-right: 5px;">
                                             <h3 class="heading">Contact Info</h3>
                                             <ul>
-                                                <li><span class="text">头大顺手邦组:</span>
+                                                <li><span class="text">头大顺手邦组</span>
                                                 </li>
-                                                <li><span class="text">17wjli6@stu.edu.cn</span></li>
-                                                <li><span class="text">17jhhuang10@stu.edu.cn</span></li>
-                                                <li><span class="text">17hjhuang@stu.edu.cn</span></li>
-                                                <li><span class="text">17qyhu@stu.edu.cn</span></li>
-                                                <li><span class="text">17zcli@stu.edu.cn</span></li>
                                             </ul>
                                         </td>
                                     </tr>
