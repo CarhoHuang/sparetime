@@ -363,7 +363,6 @@ def insert():
             auth_token_str = str(request.form['auth_token'])[2:len(str(request.form['auth_token'])) - 1]
             auth_token = bytes(auth_token_str, 'utf8')
             content = request.form['content']
-            money = request.form['money']
         except:
             return jsonify(status='error', error='Data obtain failure')
 
@@ -435,7 +434,7 @@ def insert():
             # 打开数据库连接
             try:
                 p = SearchThing(user=user, content=content, picture_url_1=p1_name, picture_url_2=p2_name,
-                                picture_url_3=p3_name, money=money)
+                                picture_url_3=p3_name)
                 db.session.add(p)
             except:
                 db.session.rollback()
