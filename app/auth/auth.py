@@ -4,7 +4,7 @@ from datetime import datetime
 
 import jwt
 from flask import (request, jsonify, current_app)
-
+from flask_login import current_user, login_user
 from . import bp
 from .. import db
 from ..email import EmailSender
@@ -109,6 +109,7 @@ def login():
             # 打开数据库连接，把生成的token写入数据库
             user.auth_token = str(auth_token)
             db.session.add(user)
+            login_user(user)
 
             user_info = {"nickname": user.nickname, "signature": user.signature,
                          "avatar_url": user.avatar_url, "gender": user.gender,
@@ -117,3 +118,9 @@ def login():
             return jsonify({"status": 'success', "data": user_info})
         return jsonify(status='error', error=error)
     return jsonify(status='error', error='other error')
+
+
+@bp.before_app_request
+def before_request():
+    if current_user.is_authenticated:
+        current_user.ping()
