@@ -3,8 +3,6 @@ from flask import (
     request, jsonify, current_app
 )
 
-from flask_login import current_user
-
 from . import bp
 from .. import db
 from ..models import Mission, User, MissionComment, Permission

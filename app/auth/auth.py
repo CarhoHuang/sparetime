@@ -113,7 +113,7 @@ def login():
             user_info = {"nickname": user.nickname, "signature": user.signature,
                          "avatar_url": user.avatar_url, "gender": user.gender,
                          "phone": user.phone, "email": user.email,
-                         'auth_token': 'okk', 'bg_url': user.bg_url, 'favourable_rate': user.favor_rate}
+                         'auth_token': user.auth_token, 'bg_url': user.bg_url, 'favourable_rate': user.favor_rate}
             return jsonify({"status": 'success', "data": user_info})
         return jsonify(status='error', error=error)
     return jsonify(status='error', error='other error')
