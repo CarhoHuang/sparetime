@@ -566,7 +566,7 @@ def up_evaluate():
 
 # 删除或反删除任务
 @bp.route('/delete_or_not', methods=('GET', 'POST'))
-def delete_or_not():  # 如果删除传入ideleted = 1, 如果恢复 = 0
+def delete_or_not():  # 如果删除传入is_deleted = 1, 如果恢复 = 0
     if request.method == 'POST':
         try:
             # 拿出auth_token，裁剪掉前两位和最后一位
@@ -734,19 +734,42 @@ def refresh_newest():
         if error is None:
             if destination == '随机' and id > biggest_id:
                 json_data = list_2_json(
-                    Mission.query.filter(Mission.id > biggest_id, Mission.is_received == 0).
-                        order_by(Mission.id.desc()).limit(10).all())
+                    Mission.query.filter(Mission.id > biggest_id, Mission.is_received == 0).order_by(
+                        Mission.id.desc()).limit(10).all())
             elif id > biggest_id:
                 print(biggest_id, destination)
                 json_data = list_2_json(
                     Mission.query.filter(Mission.id > biggest_id, Mission.is_received == 0,
-                                         Mission.destination == destination).
-                        order_by(Mission.id.desc()).limit(10).all())
-            data = {'status': "success", 'data': json_data}
-            return jsonify(data)
+                                         Mission.destination == destination).order_by(Mission.id.desc()).limit(
+                        10).all())
+
+            return jsonify({'status': "success", 'data': json_data})
         return jsonify({'status': "error", 'error': 'no data'})
     return jsonify({'status': "error", 'error': 'error method'})
 
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+# 获取用户的帖子
+@bp.route('/get_user_posts', methods=['GET', 'POST'])
+def get_user_posts():
+    if request.method == 'POST':
+        try:
+            user_id = request.form['user_id']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        error = None
+        if user_id is None:
+            error = 'Error user.'
+
+        if error is None:
+            json_data = list_2_json(
+                Mission.query.filter_by(user_id=user_id).order_by(Mission.id.desc()).all())
+
+            o = json_data
+            return jsonify({'status': "success", 'data': json_data})
+        return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
