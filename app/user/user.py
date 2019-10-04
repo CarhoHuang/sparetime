@@ -278,5 +278,34 @@ def refresh():
     return jsonify(status='error', error='method error')
 
 
+@bp.route('/get_user', methods=['GET', 'POST'])
+def get_user():
+    if request.method == 'POST':
+        try:
+            email = request.form['user_email']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        error = None
+
+        user = User.query.filter_by(email=email).first()
+
+        if email is None:
+            error = 'Error id.'
+        if user is None:
+            error = 'Error user'
+
+        if error is None:
+            user_info = {"nickname": user.nickname, "signature": user.signature,
+                         "avatar_url": user.avatar_url, "gender": user.gender,
+                         "phone": user.phone, "email": user.email,
+                         'auth_token': user.auth_token, 'bg_url': user.bg_url,
+                         'favourable_rate': user.favor_rate}
+
+            return jsonify({"status": 'success', "data": user_info})
+        return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS

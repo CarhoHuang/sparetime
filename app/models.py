@@ -13,7 +13,7 @@ class MissionComment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text)
     time = db.Column(db.DateTime, index=True, default=datetime.utcnow)
-    disabled = db.Column(db.Boolean, default=False)
+    disabled = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     post_id = db.Column(db.Integer, db.ForeignKey('missions.id'))
 
@@ -233,6 +233,12 @@ class User(UserMixin, db.Model):
     search_things = db.relationship('SearchThing', backref='user', lazy='dynamic')
 
     missions_comments = db.relationship('MissionComment', backref='user', lazy='dynamic')
+
+    def get_id(self):
+        try:
+            return str(self.user_id)
+        except AttributeError:
+            raise NotImplementedError('No `id` attribute - override `get_id`')
 
     # 定义默认的用户角色
     def __init__(self, **kwargs):

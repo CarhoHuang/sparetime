@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 
 from . import bp
 from .. import db
-from ..models import Mission, User
+from ..models import Mission, User, MissionComment
 
 # 上传图片相关
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -41,12 +41,28 @@ def list_2_json(li):
     return json_data
 
 
+def list_2_cjson(li):
+    json_data = {}  # 每一个键值对是一个帖子
+    for idx, comment in enumerate(li):  # posts列表，列表元素为元组
+        json_data.update({'comment_%s' % idx: {
+            "id": comment.id,
+            "user_email": comment.user.email,
+            "user_avatar": comment.user.avatar_url,
+            "user_nickname": comment.user.nickname,
+            "user_id": comment.user.user_id,
+            "post_id": comment.post.id,
+            "content": comment.content,
+            "time": comment.time,
+            "disabled": comment.disabled}})
+    return json_data
+
+
 # 通过任务ID获取任务的详细信息
 @bp.route('/get_mission_by_mission_id', methods=('GET', 'POST'))
 def get_mission_by_mission_id():
     if request.method == 'POST':
         try:
-            id = request.form['id']
+            id = request.form['errand_id']
         except:
             return jsonify(status='error', error='Data obtain failure')
 
@@ -58,7 +74,11 @@ def get_mission_by_mission_id():
         if error is None:
             li = Mission.query.filter_by(id=id, is_deleted=0).all()
             json_data = list_2_json(li)
-            data = {'status': "success", 'posts': json_data}
+
+            cli = MissionComment.query.filter_by(post=li[0]).all()
+            comment_data = list_2_cjson(cli)
+
+            data = {'status': "success", 'data': {'errand_message': json_data, 'comments_message': comment_data}}
             return jsonify(data)
         return jsonify({'status': "error", 'error': 'no data'})
     return jsonify({'status': "error", 'error': 'error method'})
