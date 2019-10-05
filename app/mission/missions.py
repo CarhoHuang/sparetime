@@ -749,10 +749,6 @@ def refresh_newest():
     return jsonify({'status': "error", 'error': 'error method'})
 
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
 # 获取用户发布的任务帖子
 @bp.route('/get_user_posts', methods=['GET', 'POST'])
 def get_user_posts():
@@ -841,3 +837,6 @@ def get_user_received_ndone_posts():
         return jsonify({'status': "error", 'error': error})
     return jsonify({'status': "error", 'error': 'error method'})
 
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS

@@ -457,5 +457,28 @@ def refresh_newest():
     return jsonify({'status': "error", 'error': 'error method'})
 
 
+# 获取用户发布的寻找物品帖子
+@bp.route('/get_user_posts', methods=['GET', 'POST'])
+def get_user_posts():
+    if request.method == 'POST':
+        try:
+            user_id = request.form['user_id']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        error = None
+        if user_id is None:
+            error = 'Error user.'
+
+        if error is None:
+            json_data = list_2_json(
+                SearchThing.query.filter_by(user_id=user_id).order_by(SearchThing.id.desc()).all())
+
+            o = json_data
+            return jsonify({'status': "success", 'data': json_data})
+        return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
