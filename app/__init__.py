@@ -57,8 +57,8 @@ def create_app(config_name):
     from .auth import auth
     app.register_blueprint(auth.bp)
 
-    from .mission import mission
-    app.register_blueprint(mission.bp)
+    from .mission import missions
+    app.register_blueprint(missions.bp)
 
     from .idle_thing import idle_thing
     app.register_blueprint(idle_thing.bp)

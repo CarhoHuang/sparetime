@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 
 from . import bp
 from .. import db
-from ..models import Mission, User, MissionComment
+from ..models import Mission, User, MissionComment,IdleThing
 
 # 上传图片相关
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -37,7 +37,8 @@ def list_2_json(li):
             "money": mission.money,
             "evaluate": mission.evaluate,
             "receiver_id": mission.receiver_id,
-            "is_received": mission.is_received}})
+            "is_received": mission.is_received,
+            "is_finished":mission.is_finished}})
     return json_data
 
 
@@ -752,7 +753,7 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-# 获取用户的帖子
+# 获取用户发布的任务帖子
 @bp.route('/get_user_posts', methods=['GET', 'POST'])
 def get_user_posts():
     if request.method == 'POST':
@@ -773,3 +774,70 @@ def get_user_posts():
             return jsonify({'status': "success", 'data': json_data})
         return jsonify({'status': "error", 'error': error})
     return jsonify({'status': "error", 'error': 'error method'})
+
+# 获取用户接受的任务帖子
+@bp.route('/get_user_received_posts', methods=['GET', 'POST'])
+def get_user_received_posts():
+    if request.method == 'POST':
+        try:
+            user_id = request.form['user_id']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        error = None
+        if user_id is None:
+            error = 'Error user.'
+
+        if error is None:
+            json_data = list_2_json(
+                Mission.query.filter_by(user_id=user_id,is_received=1).order_by(Mission.id.desc()).all())
+
+            o = json_data
+            return jsonify({'status': "success", 'data': json_data})
+        return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+#获取用户已接收到且完成的任务
+@bp.route('/get_user_received_done_posts', methods=['GET', 'POST'])
+def get_user_received_done_posts():
+    if request.method == 'POST':
+        try:
+            user_id = request.form['user_id']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        error = None
+        if user_id is None:
+            error = 'Error user.'
+
+        if error is None:
+            json_data = list_2_json(
+                Mission.query.filter_by(user_id=user_id,is_received=1,is_finished=1).order_by(Mission.id.desc()).all())
+
+            o = json_data
+            return jsonify({'status': "success", 'data': json_data})
+        return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+#获取用户已接收到但未完成的任务
+@bp.route('/get_user_received_ndone_posts', methods=['GET', 'POST'])
+def get_user_received_ndone_posts():
+    if request.method == 'POST':
+        try:
+            user_id = request.form['user_id']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        error = None
+        if user_id is None:
+            error = 'Error user.'
+
+        if error is None:
+            json_data = list_2_json(
+                Mission.query.filter_by(user_id=user_id,is_received=1,is_finished=0).order_by(Mission.id.desc()).all())
+
+            o = json_data
+            return jsonify({'status': "success", 'data': json_data})
+        return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+

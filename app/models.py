@@ -99,9 +99,10 @@ class IdleThing(db.Model):
     picture_url_3 = db.Column(db.String(100), default='')
     like_number = db.Column(db.Integer, default=0)
     comment_number = db.Column(db.Integer, default=0)
-    is_deleted = db.Column(db.Integer, default=0)
     money = db.Column(db.Integer, default=2)
     release_time = db.Column(db.DateTime, default=datetime.now)
+    is_deleted = db.Column(db.Integer, default=0)
+    is_finished = db.Column(db.Integer, default=0)
 
     # 生成虚拟帖子
     @staticmethod
@@ -135,13 +136,14 @@ class Mission(db.Model):
     destination = db.Column(db.String(100), default='')
     like_number = db.Column(db.Integer, default=0)
     comment_number = db.Column(db.Integer, default=0)
-    is_deleted = db.Column(db.Integer, default=0)
     end_time = db.Column(db.DateTime)
     money = db.Column(db.Float)
     evaluate = db.Column(db.Integer)
     receiver_id = db.Column(db.Integer)
     release_time = db.Column(db.DateTime, default=datetime.now)
+    is_deleted = db.Column(db.Integer, default=0)
     is_received = db.Column(db.Integer, default=0)
+    is_finished = db.Column(db.Integer, default=0)
 
     comments = db.relationship('MissionComment', backref='post', lazy='dynamic')
 
