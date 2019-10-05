@@ -1,4 +1,4 @@
-# 引用包
+ # 引用包
 import os
 
 import jwt
@@ -30,6 +30,7 @@ def list_2_json(li):
             "like_number": post.like_number,
             "comment_number": post.comment_number,
             "is_deleted": post.is_deleted,
+            "is_finished":post.is_finished,
             "money": post.money}})
     return json_data
 
