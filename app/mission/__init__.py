@@ -1,5 +1,5 @@
 from flask import Blueprint
 
-bp = Blueprint('mission', __name__, url_prefix='/mission')
+bp = Blueprint('missions', __name__, url_prefix='/missions')
 from . import missions
 from . import mission_comments
