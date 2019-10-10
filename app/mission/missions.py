@@ -840,5 +840,91 @@ def get_user_received_ndone_posts():
     return jsonify({'status': "error", 'error': 'error method'})
 
 
+@bp.route('/receive_mission', methods=['GET', 'POST'])
+def receive_mission():
+    if request.method == 'POST':
+        try:
+            # 拿出auth_token，裁剪掉前两位和最后一位
+            auth_token_str = str(request.form['auth_token'])[2:len(str(request.form['auth_token'])) - 1]
+            auth_token = bytes(auth_token_str, 'utf8')
+            post_id = request.form['post_id']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        # 通过token获取用户
+        try:
+            key = current_app.config['SECRET_KEY']
+            user_json = jwt.decode(auth_token, key, algorithms=['HS256'])
+        except:
+            return jsonify(status='error', error='decode failed')
+        # 判断该token是否跟解析出来的用户token一致
+        user_id = user_json.get('user_id')
+        # 打开数据库连接
+        user = User.query.filter_by(user_id=user_id).first()
+        # 验证token是否一致，不一致就return
+        if str(request.form['auth_token']) != user.auth_token:
+            return jsonify(status='error', error='Authenticate failed')
+
+        mission = Mission.query.filter_by(id=post_id).first()
+        error = None
+
+        if error is None:
+            try:
+                mission.receiver_id = user.user_id
+                mission.is_received = not mission.is_received
+                db.session.add(mission)
+            except Exception:
+                print(Exception.args)
+                db.session.rollback()
+                return jsonify({'status': "error", 'error': 'Database error'})
+            return jsonify(status='success')
+        return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
+@bp.route('/finish_mission', methods=['GET', 'POST'])
+def finish_mission():
+    if request.method == 'POST':
+        try:
+            # 拿出auth_token，裁剪掉前两位和最后一位
+            auth_token_str = str(request.form['auth_token'])[2:len(str(request.form['auth_token'])) - 1]
+            auth_token = bytes(auth_token_str, 'utf8')
+            post_id = request.form['post_id']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        # 通过token获取用户
+        try:
+            key = current_app.config['SECRET_KEY']
+            user_json = jwt.decode(auth_token, key, algorithms=['HS256'])
+        except:
+            return jsonify(status='error', error='decode failed')
+        # 判断该token是否跟解析出来的用户token一致
+        user_id = user_json.get('user_id')
+        # 打开数据库连接
+        user = User.query.filter_by(user_id=user_id).first()
+        # 验证token是否一致，不一致就return
+        if str(request.form['auth_token']) != user.auth_token:
+            return jsonify(status='error', error='Authenticate failed')
+
+        mission = Mission.query.filter_by(id=post_id).first()
+        if mission.user.user_id != user.user_id:
+            return jsonify(status='error', error='Not belonging to the user')
+        error = None
+
+        if error is None:
+            try:
+                mission.is_finished = not mission.is_finished
+                db.session.add(mission)
+            except Exception:
+                print(Exception.args)
+                db.session.rollback()
+                return jsonify({'status': "error", 'error': 'Database error'})
+
+            return jsonify(status='success')
+        return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS

@@ -110,7 +110,7 @@ def login():
             user.auth_token = str(auth_token)
             db.session.add(user)
             login_user(user)
-            user_info = {"nickname": user.nickname, "signature": user.signature,
+            user_info = {"user_id": user.user_id, "nickname": user.nickname, "signature": user.signature,
                          "avatar_url": user.avatar_url, "gender": user.gender,
                          "phone": user.phone, "email": user.email,
                          'auth_token': user.auth_token, 'bg_url': user.bg_url, 'favourable_rate': user.favor_rate}
