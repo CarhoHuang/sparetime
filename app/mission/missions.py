@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 
 from . import bp
 from .. import db
-from ..models import Mission, User, MissionComment,IdleThing
+from ..models import Mission, User, MissionComment, IdleThing
 
 # 上传图片相关
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -38,7 +38,7 @@ def list_2_json(li):
             "evaluate": mission.evaluate,
             "receiver_id": mission.receiver_id,
             "is_received": mission.is_received,
-            "is_finished":mission.is_finished}})
+            "is_finished": mission.is_finished}})
     return json_data
 
 
@@ -703,7 +703,8 @@ def insert():
                             picture_url_3=p3_name, origin=origin, destination=destination, end_time=end_time,
                             money=money)
                 db.session.add(m)
-            except:
+            except Exception:
+                print(Exception.args)
                 db.session.rollback()
             return jsonify(status='success')
 
@@ -766,10 +767,10 @@ def get_user_posts():
             json_data = list_2_json(
                 Mission.query.filter_by(user_id=user_id).order_by(Mission.id.desc()).all())
 
-            o = json_data
             return jsonify({'status': "success", 'data': json_data})
         return jsonify({'status': "error", 'error': error})
     return jsonify({'status': "error", 'error': 'error method'})
+
 
 # 获取用户接受的任务帖子
 @bp.route('/get_user_received_posts', methods=['GET', 'POST'])
@@ -786,14 +787,14 @@ def get_user_received_posts():
 
         if error is None:
             json_data = list_2_json(
-                Mission.query.filter_by(user_id=user_id,is_received=1).order_by(Mission.id.desc()).all())
+                Mission.query.filter_by(receiver_id=user_id, is_received=1).order_by(Mission.id.desc()).all())
 
-            o = json_data
             return jsonify({'status': "success", 'data': json_data})
         return jsonify({'status': "error", 'error': error})
     return jsonify({'status': "error", 'error': 'error method'})
 
-#获取用户已接收到且完成的任务
+
+# 获取用户已接收到且完成的任务
 @bp.route('/get_user_received_done_posts', methods=['GET', 'POST'])
 def get_user_received_done_posts():
     if request.method == 'POST':
@@ -808,14 +809,15 @@ def get_user_received_done_posts():
 
         if error is None:
             json_data = list_2_json(
-                Mission.query.filter_by(user_id=user_id,is_received=1,is_finished=1).order_by(Mission.id.desc()).all())
+                Mission.query.filter_by(receiver_id=user_id, is_received=1, is_finished=1).order_by(
+                    Mission.id.desc()).all())
 
-            o = json_data
             return jsonify({'status': "success", 'data': json_data})
         return jsonify({'status': "error", 'error': error})
     return jsonify({'status': "error", 'error': 'error method'})
 
-#获取用户已接收到但未完成的任务
+
+# 获取用户已接收到但未完成的任务
 @bp.route('/get_user_received_ndone_posts', methods=['GET', 'POST'])
 def get_user_received_ndone_posts():
     if request.method == 'POST':
@@ -830,9 +832,9 @@ def get_user_received_ndone_posts():
 
         if error is None:
             json_data = list_2_json(
-                Mission.query.filter_by(user_id=user_id,is_received=1,is_finished=0).order_by(Mission.id.desc()).all())
+                Mission.query.filter_by(receiver_id=user_id, is_received=1, is_finished=0).order_by(
+                    Mission.id.desc()).all())
 
-            o = json_data
             return jsonify({'status': "success", 'data': json_data})
         return jsonify({'status': "error", 'error': error})
     return jsonify({'status': "error", 'error': 'error method'})

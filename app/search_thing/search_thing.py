@@ -427,8 +427,6 @@ def insert():
         error = None
         if content is None:
             error = 'Error content.'
-        if money is None:
-            error = 'Error money.'
 
         if error is None:
             # 打开数据库连接

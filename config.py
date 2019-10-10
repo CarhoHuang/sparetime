@@ -19,16 +19,16 @@ class DevelopmentConfig(Config):
     MAIL_USE_TLS = False
     MAIL_USERNAME = 'development_team@qq.com'
     MAIL_PASSWORD = 'pofxzfsrkytzegcb'
-    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:DC2018@localhost/sparetime'
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:154202@localhost/ceshi?charset=utf8mb4'
 
 
 class TestingConfig(Config):
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:DC2018@localhost/sparetime'
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:154202@localhost/ceshi?charset=utf8mb4'
 
 
 class ProductionConfig(Config):
-    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:DC2018@localhost/sparetime'
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:154202@localhost/ceshi?charset=utf8mb4'
 
 
 config = {
