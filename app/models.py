@@ -7,6 +7,44 @@ from datetime import datetime
 
 
 # 定义模型
+class SearchThingComment(db.Model):
+    __tablename__ = 'search_thing_comments'
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text)
+    time = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    disabled = db.Column(db.Integer, default=0)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
+    post_id = db.Column(db.Integer, db.ForeignKey('search_things.id'))
+
+    def __repr__(self):
+        return '<MissionComment %r>' % self.content
+
+
+class StudyComment(db.Model):
+    __tablename__ = 'study_comments'
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text)
+    time = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    disabled = db.Column(db.Integer, default=0)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
+    post_id = db.Column(db.Integer, db.ForeignKey('studies.id'))
+
+    def __repr__(self):
+        return '<MissionComment %r>' % self.content
+
+
+class IdleThingComment(db.Model):
+    __tablename__ = 'idle_thing_comments'
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text)
+    time = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    disabled = db.Column(db.Integer, default=0)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
+    post_id = db.Column(db.Integer, db.ForeignKey('idle_things.id'))
+
+    def __repr__(self):
+        return '<MissionComment %r>' % self.content
+
 
 class MissionComment(db.Model):
     __tablename__ = 'mission_comments'
@@ -34,6 +72,8 @@ class SearchThing(db.Model):
     is_deleted = db.Column(db.Integer, default=0)
     is_solved = db.Column(db.Integer, default=0)
     release_time = db.Column(db.DateTime, default=datetime.now)
+
+    comments = db.relationship('SearchThingComment', backref='post', lazy='dynamic')
 
     # 生成虚拟帖子
     @staticmethod
@@ -68,6 +108,8 @@ class Study(db.Model):
     is_deleted = db.Column(db.Integer, default=0)
     is_solved = db.Column(db.Integer, default=0)
     release_time = db.Column(db.DateTime, default=datetime.now)
+
+    comments = db.relationship('StudyComment', backref='post', lazy='dynamic')
 
     # 生成虚拟帖子
     @staticmethod
@@ -104,6 +146,8 @@ class IdleThing(db.Model):
     is_deleted = db.Column(db.Integer, default=0)
     is_finished = db.Column(db.Integer, default=0)
 
+    comments = db.relationship('IdleThingComment', backref='post', lazy='dynamic')
+
     # 生成虚拟帖子
     @staticmethod
     def generate_fake(count=100):
@@ -136,7 +180,7 @@ class Mission(db.Model):
     destination = db.Column(db.String(100), default='')
     like_number = db.Column(db.Integer, default=0)
     comment_number = db.Column(db.Integer, default=0)
-    end_time = db.Column(db.DateTime)
+    end_time = db.Column(db.DateTime, default=datetime.now)
     money = db.Column(db.Float)
     evaluate = db.Column(db.Integer)
     receiver_id = db.Column(db.Integer)
@@ -235,6 +279,9 @@ class User(UserMixin, db.Model):
     search_things = db.relationship('SearchThing', backref='user', lazy='dynamic')
 
     missions_comments = db.relationship('MissionComment', backref='user', lazy='dynamic')
+    idle_things_comments = db.relationship('IdleThingComment', backref='user', lazy='dynamic')
+    study_comments = db.relationship('StudyComment', backref='user', lazy='dynamic')
+    search_things_comments = db.relationship('SearchThingComment', backref='user', lazy='dynamic')
 
     def get_id(self):
         try:

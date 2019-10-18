@@ -45,8 +45,10 @@ def signup():
             time_now = datetime.now()
 
             real_v_code = ''
-            if (time_now - time_code).total_seconds() <= 15 * 60:  # 时间少于15分钟才算
-                real_v_code = str(v_codes[len(v_codes) - 1].verification_code)
+            delta_time = (time_now - time_code).total_seconds()
+            if delta_time <= 15 * 60:  # 时间少于15分钟才算
+                real_v_code = v_codes[len(v_codes) - 1].verification_code
+            real_v_code = str(v_codes[len(v_codes) - 1].verification_code)
             print('用户v_code：' + verification_code)
             print('数据库v_code：' + real_v_code)
             if verification_code != real_v_code:

@@ -2,10 +2,11 @@ import jwt
 from flask import (
     request, jsonify, current_app
 )
+from flask_login import current_user
 
 from . import bp
 from .. import db
-from ..models import Mission, User, MissionComment, Permission
+from ..models import IdleThing, User, IdleThingComment, Permission
 
 
 @bp.route('/comment/add', methods=['GET', 'POST'])
@@ -31,7 +32,7 @@ def add_mission_comment():
 
         # 打开数据库连接
         user = User.query.filter_by(user_id=user_id).first()
-        post = Mission.query.filter_by(id=post_id).first()
+        post = IdleThing.query.filter_by(id=post_id).first()
 
         error = None
         if content is None:
@@ -40,10 +41,12 @@ def add_mission_comment():
             error = 'Error user.'
         if post is None:
             error = 'Error post.'
+        if not user.can(Permission.COMMENT):
+            error = 'Do not have permission.'
 
         if error is None:
             # 打开数据库连接
-            mc = MissionComment(user=user, post=post, content=content)
+            mc = IdleThingComment(user=user, post=post, content=content)
             post.comment_number += 1
             try:
                 db.session.add_all([mc, post])
@@ -93,7 +96,7 @@ def delete_mission_comment():
         if not user.can(Permission.MODERATE_COMMENTS):
             return jsonify(status='error', error='Permission deny')
 
-        mc = MissionComment.query.filter_by(id=id).first()
+        mc = IdleThingComment.query.filter_by(id=id).first()
 
         error = None
         if user is None:
@@ -113,25 +116,3 @@ def delete_mission_comment():
             return jsonify(status='success')
         return jsonify({'status': "error", 'error': error})
     return jsonify({'status': "error", 'error': 'error method'})
-
-
-def search_by_post(post):
-    """
-    返回列表
-    :param post:
-    :return:
-    """
-    mcs = MissionComment.query.filter_by(post=post).all()
-
-    return mcs
-
-
-def search_by_user(user):
-    """
-    返回列表
-    :param user:
-    :return:
-    """
-    mcs = MissionComment.query.filter_by(user=user).all()
-
-    return mcs

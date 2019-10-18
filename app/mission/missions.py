@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 
 from . import bp
 from .. import db
-from ..models import Mission, User, MissionComment, IdleThing
+from ..models import Mission, User, MissionComment
 
 # 上传图片相关
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -34,6 +34,7 @@ def list_2_json(li):
             "errand_id": mission.id,
             "is_deleted": mission.is_deleted,
             "end_time": mission.end_time,
+            "release_time": mission.release_time,
             "money": mission.money,
             "evaluate": mission.evaluate,
             "receiver_id": mission.receiver_id,
@@ -663,7 +664,10 @@ def insert():
 
         # 获取帖子的id用来命名图片
         res = db.session.query(db.func.max(Mission.id).label('max_id')).one()
-        post_id = res.max_id + 1
+        if res.max_id is not None:
+            post_id = res.max_id + 1
+        else:
+            post_id = 1
         # 重写文件名，保存图片
         p1_name = None
         p2_name = None
@@ -923,6 +927,69 @@ def finish_mission():
 
             return jsonify(status='success')
         return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
+@bp.route('/search', methods=['GET', 'POST'])
+def search():
+    if request.method == 'POST':
+        try:
+            content = request.form['content']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        error = None
+        if content is None:
+            error = 'Error content.'
+
+        if error is None:
+            post_li = Mission.query.filter(Mission.content.like('%' + content + '%')).order_by(
+                Mission.id.desc()).limit(20).all()  # 标题
+            post_li.extend(Mission.query.filter(Mission.origin.like('%' + content + '%')).order_by(
+                Mission.id.desc()).limit(20).all())  # 起点
+            post_li.extend(Mission.query.filter(Mission.destination.like('%' + content + '%')).order_by(
+                Mission.id.desc()).limit(20).all())  # 终点
+            post_li.extend(
+                Mission.query.join(User).filter(User.nickname.like('%' + content + '%')).order_by(
+                    Mission.id.desc()).limit(20).all())  # 用户
+
+            json_data = list_2_json(post_li)
+
+            return jsonify({'status': "success", 'data': json_data})
+        return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
+@bp.route('/load_more', methods=['GET', 'POST'])
+def load_more():
+    if request.method == 'POST':
+        try:
+            page_str = request.form['page']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        try:
+            page = int(page_str)
+        except ValueError:
+            page = 1
+        # 分页
+        pagination = Mission.query.order_by(Mission.release_time.desc()) \
+            .paginate(page=page, per_page=current_app.config['POSTS_PER_PAGE'],
+                      error_out=False)
+        json_data = list_2_json(pagination.items)
+
+        # 分页对象转JSON
+        pagination_json = {'has_next': pagination.has_next,
+                           'has_prev': pagination.has_prev,
+                           'next_num': pagination.next_num,
+                           'prev_num': pagination.prev_num,
+                           'page': pagination.page,
+                           'pages': pagination.pages,
+                           'per_page': pagination.per_page,
+                           'total': pagination.total}
+
+        data = {'status': "success", 'data': json_data, 'pagination': pagination_json}
+        return jsonify(data)
     return jsonify({'status': "error", 'error': 'error method'})
 
 

@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 
 from . import bp
 from .. import db
-from ..models import SearchThing, User
+from ..models import SearchThing, User, SearchThingComment
 
 # 上传图片相关
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -27,10 +27,27 @@ def list_2_json(li):
             "picture_url_1": post.picture_url_1,
             "picture_url_2": post.picture_url_2,
             "picture_url_3": post.picture_url_3,
+            "release_time": post.release_time,
             "like_number": post.like_number,
             "comment_number": post.comment_number,
             "is_deleted": post.is_deleted,
             "is_solved": post.is_solved}})
+    return json_data
+
+
+def list_2_cjson(li):
+    json_data = {}  # 每一个键值对是一个帖子
+    for idx, comment in enumerate(li):  # posts列表，列表元素为元组
+        json_data.update({'comment_%s' % idx: {
+            "id": comment.id,
+            "user_email": comment.user.email,
+            "user_avatar": comment.user.avatar_url,
+            "user_nickname": comment.user.nickname,
+            "user_id": comment.user.user_id,
+            "post_id": comment.post.id,
+            "content": comment.content,
+            "time": comment.time,
+            "disabled": comment.disabled}})
     return json_data
 
 
@@ -51,7 +68,10 @@ def get_post_by_id():
         if error is None:
             li = SearchThing.query.filter_by(id=id, is_deleted=0).all()
             json_data = list_2_json(li)
-            data = {'status': "success", 'posts': json_data}
+            cli = SearchThingComment.query.filter_by(post=li[0]).all()
+            comment_data = list_2_cjson(cli)
+
+            data = {'status': "success", 'data': {'post_message': json_data, 'comments_message': comment_data}}
             return jsonify(data)
         return jsonify({'status': "error", 'error': 'no data'})
     return jsonify({'status': "error", 'error': 'error method'})
@@ -401,7 +421,10 @@ def insert():
 
         # 获取帖子的id用来命名图片
         res = db.session.query(db.func.max(SearchThing.id).label('max_id')).one()
-        post_id = res.max_id + 1
+        if res.max_id is not None:
+            post_id = res.max_id + 1
+        else:
+            post_id = 1
         # 重写文件名，保存图片
         p1_name = None
         p2_name = None
@@ -475,6 +498,65 @@ def get_user_posts():
             o = json_data
             return jsonify({'status': "success", 'data': json_data})
         return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
+@bp.route('/search', methods=['GET', 'POST'])
+def search():
+    if request.method == 'POST':
+        try:
+            content = request.form['content']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        error = None
+        if content is None:
+            error = 'Error content.'
+
+        if error is None:
+            post_li = SearchThing.query.filter(SearchThing.content.like('%' + content + '%')).order_by(
+                SearchThing.id.desc()).limit(20).all()
+            post_li.extend(
+                SearchThing.query.join(User).filter(User.nickname.like('%' + content + '%')).order_by(
+                    SearchThing.id.desc()).limit(20).all())
+
+            json_data = list_2_json(post_li)
+
+            return jsonify({'status': "success", 'data': json_data})
+        return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
+@bp.route('/load_more', methods=['GET', 'POST'])
+def load_more():
+    if request.method == 'POST':
+        try:
+            page_str = request.form['page']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        try:
+            page = int(page_str)
+        except ValueError:
+            page = 1
+        # 分页
+        pagination = SearchThing.query.order_by(SearchThing.release_time.desc()) \
+            .paginate(page=page, per_page=current_app.config['POSTS_PER_PAGE'],
+                      error_out=False)
+        json_data = list_2_json(pagination.items)
+
+        # 分页对象转JSON
+        pagination_json = {'has_next': pagination.has_next,
+                           'has_prev': pagination.has_prev,
+                           'next_num': pagination.next_num,
+                           'prev_num': pagination.prev_num,
+                           'page': pagination.page,
+                           'pages': pagination.pages,
+                           'per_page': pagination.per_page,
+                           'total': pagination.total}
+
+        data = {'status': "success", 'data': json_data, 'pagination': pagination_json}
+        return jsonify(data)
     return jsonify({'status': "error", 'error': 'error method'})
 
 

@@ -5,6 +5,7 @@ class Config:
     STFU_MAIL_SUBJECT_PREFIX = '[STFU]'
     MAIL_SENDER = 'STFU Admin<development_team@qq.com>'
     MAIL_ADMIN = 'development_team@qq.com'
+    POSTS_PER_PAGE = 10
 
     @staticmethod
     def init_app(app):

@@ -28,16 +28,18 @@ class EmailSender:
         msg = Message(current_app.config['STFU_MAIL_SUBJECT_PREFIX'] + subject,
                       sender=current_app.config['MAIL_SENDER'], recipients=[to])
 
-        with application.open_resource(basedir + url_for('static', filename='images/bg_1.jpg')) as fp:
-            msg.attach('bg_1.jpg', "image/*", fp.read(), 'inline', headers=[('Content-ID', 'bg_1.jpg')])
-        with application.open_resource(basedir + url_for('static', filename='images/work-1.jpg')) as fp:
-            msg.attach('work-1.jpg', "image/*", fp.read(), 'inline', headers=[('Content-ID', 'work-1.jpg')])
-        with application.open_resource(basedir + url_for('static', filename='images/work-2.jpg')) as fp:
-            msg.attach('work-2.jpg', "image/*", fp.read(), 'inline', headers=[('Content-ID', 'work-2.jpg')])
+        # 邮件附上图片发送，有点卡，算了，不发了
+        # with application.open_resource(basedir + url_for('static', filename='images/bg_1.jpg')) as fp:
+        #     msg.attach('bg_1.jpg', "image/*", fp.read(), 'inline', headers=[('Content-ID', 'bg_1.jpg')])
+        # with application.open_resource(basedir + url_for('static', filename='images/work-1.jpg')) as fp:
+        #     msg.attach('work-1.jpg', "image/*", fp.read(), 'inline', headers=[('Content-ID', 'work-1.jpg')])
+        # with application.open_resource(basedir + url_for('static', filename='images/work-2.jpg')) as fp:
+        #     msg.attach('work-2.jpg', "image/*", fp.read(), 'inline', headers=[('Content-ID', 'work-2.jpg')])
 
         msg.body = render_template(template + '.txt', **kwargs)
-        msg.html = render_template(template + '.html', img_1='cid:bg_1.jpg', img_2='cid:work-1.jpg',
-                                   img_3='cid:work-2.jpg', **kwargs)
+        # msg.html = render_template(template + '.html', img_1='cid:bg_1.jpg', img_2='cid:work-1.jpg',
+        #                            img_3='cid:work-2.jpg', **kwargs)
+        msg.html = render_template(template + '.html', **kwargs)
 
         thr = Thread(target=self.send_async_mail, args=[application, msg])
         thr.start()
