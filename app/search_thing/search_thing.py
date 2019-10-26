@@ -31,7 +31,7 @@ def list_2_json(li):
             "like_number": post.like_number,
             "comment_number": post.comment_number,
             "is_deleted": post.is_deleted,
-            "is_solved": post.is_solved}})
+            "is_found": post.is_solved}})
     return json_data
 
 
@@ -47,6 +47,7 @@ def list_2_cjson(li):
             "post_id": comment.post.id,
             "content": comment.content,
             "time": comment.time,
+            "post_type": comment.post_type,
             "disabled": comment.disabled}})
     return json_data
 
@@ -68,7 +69,7 @@ def get_post_by_id():
         if error is None:
             li = SearchThing.query.filter_by(id=id, is_deleted=0).all()
             json_data = list_2_json(li)
-            cli = SearchThingComment.query.filter_by(post=li[0]).all()
+            cli = SearchThingComment.query.filter_by(post=li[0], disabled=0).all()
             comment_data = list_2_cjson(cli)
 
             data = {'status': "success", 'data': {'post_message': json_data, 'comments_message': comment_data}}

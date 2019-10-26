@@ -47,6 +47,7 @@ def list_2_cjson(li):
             "post_id": comment.post.id,
             "content": comment.content,
             "time": comment.time,
+            "post_type": comment.post_type,
             "disabled": comment.disabled}})
     return json_data
 
@@ -68,7 +69,7 @@ def get_post_by_id():
         if error is None:
             li = Study.query.filter_by(id=id, is_deleted=0).all()
             json_data = list_2_json(li)
-            cli = StudyComment.query.filter_by(post=li[0]).all()
+            cli = StudyComment.query.filter_by(post=li[0], disabled=0).all()
             comment_data = list_2_cjson(cli)
 
             data = {'status': "success", 'data': {'post_message': json_data, 'comments_message': comment_data}}

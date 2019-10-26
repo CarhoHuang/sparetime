@@ -62,5 +62,8 @@ def create_app(config_name):
     from .user import user
     app.register_blueprint(user.bp)
 
+    from .like import like
+    app.register_blueprint(like.bp)
+
     app.app_context()
     return app

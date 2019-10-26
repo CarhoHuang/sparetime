@@ -7,14 +7,28 @@ from datetime import datetime
 
 
 # 定义模型
+class Like(db.Model):
+    __tablename__ = 'likes'
+    id = db.Column(db.Integer, primary_key=True, index=True, autoincrement=True)
+    post_type = db.Column(db.Integer, default=0)  # 0 mission,1 idle,2 study,3 search
+    post_id = db.Column(db.Integer, default=1)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
+    time = db.Column(db.DateTime, index=True, default=datetime.now)
+    is_cancel = db.Column(db.Integer, default=0)
+
+    def __repr__(self):
+        return '<Post %r>' % self.post_id
+
+
 class SearchThingComment(db.Model):
     __tablename__ = 'search_thing_comments'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     content = db.Column(db.Text)
-    time = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    time = db.Column(db.DateTime, index=True, default=datetime.now)
     disabled = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     post_id = db.Column(db.Integer, db.ForeignKey('search_things.id'))
+    post_type = db.Column(db.String(100), default='search_thing')
 
     def __repr__(self):
         return '<MissionComment %r>' % self.content
@@ -22,12 +36,13 @@ class SearchThingComment(db.Model):
 
 class StudyComment(db.Model):
     __tablename__ = 'study_comments'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     content = db.Column(db.Text)
-    time = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    time = db.Column(db.DateTime, index=True, default=datetime.now)
     disabled = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     post_id = db.Column(db.Integer, db.ForeignKey('studies.id'))
+    post_type = db.Column(db.String(100), default='study')
 
     def __repr__(self):
         return '<MissionComment %r>' % self.content
@@ -35,12 +50,13 @@ class StudyComment(db.Model):
 
 class IdleThingComment(db.Model):
     __tablename__ = 'idle_thing_comments'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     content = db.Column(db.Text)
-    time = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    time = db.Column(db.DateTime, index=True, default=datetime.now)
     disabled = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     post_id = db.Column(db.Integer, db.ForeignKey('idle_things.id'))
+    post_type = db.Column(db.String(100), default='idle_thing')
 
     def __repr__(self):
         return '<MissionComment %r>' % self.content
@@ -48,12 +64,13 @@ class IdleThingComment(db.Model):
 
 class MissionComment(db.Model):
     __tablename__ = 'mission_comments'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     content = db.Column(db.Text)
-    time = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    time = db.Column(db.DateTime, index=True, default=datetime.now)
     disabled = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     post_id = db.Column(db.Integer, db.ForeignKey('missions.id'))
+    post_type = db.Column(db.String(100), default='mission')
 
     def __repr__(self):
         return '<MissionComment %r>' % self.content
@@ -269,7 +286,7 @@ class User(UserMixin, db.Model):
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     favor_rate = db.Column(db.Integer, default=100)
     time = db.Column(db.DateTime, default=datetime.now)
-    last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
+    last_seen = db.Column(db.DateTime(), default=datetime.now)
     auth_token = db.Column(db.String(200))
     bg_url = db.Column(db.String(200))
 
@@ -282,6 +299,8 @@ class User(UserMixin, db.Model):
     idle_things_comments = db.relationship('IdleThingComment', backref='user', lazy='dynamic')
     study_comments = db.relationship('StudyComment', backref='user', lazy='dynamic')
     search_things_comments = db.relationship('SearchThingComment', backref='user', lazy='dynamic')
+
+    likes = db.relationship('Like', backref='user', lazy='dynamic')
 
     def get_id(self):
         try:
@@ -350,7 +369,7 @@ class VCode(db.Model):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, unique=True, nullable=False)
     email = db.Column(db.String(100), index=True, default='')
     verification_code = db.Column(db.Integer)
-    time = db.Column(db.DateTime, default=datetime.now())
+    time = db.Column(db.DateTime, default=datetime.now)
 
     def __repr__(self):
         return '<VCode %r>' % self.verification_code

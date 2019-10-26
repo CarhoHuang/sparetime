@@ -121,6 +121,34 @@ def login():
     return jsonify(status='error', error='other error')
 
 
+@bp.route('/is_token_invalid', methods=['GET', 'POST'])
+def is_token_invalid():
+    if request.method == 'POST':
+        try:
+            # 拿出auth_token，裁剪掉前两位和最后一位
+            auth_token_str = str(request.form['auth_token'])[2:len(str(request.form['auth_token'])) - 1]
+            auth_token = bytes(auth_token_str, 'utf8')
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        # 通过token获取用户
+        try:
+            key = current_app.config['SECRET_KEY']
+            user_json = jwt.decode(auth_token, key, algorithms=['HS256'])
+        except:
+            return jsonify(status='error', error='decode failed')
+        # 判断该token是否跟解析出来的用户token一致
+        user_id = user_json.get('user_id')
+        user = User.query.filter_by(user_id=user_id).first()
+
+        # 验证token是否一致，不一致就return
+        if str(request.form['auth_token']) != user.auth_token:
+            return jsonify(status='error', error='Authenticate failed')
+
+        return jsonify({'status': "success"})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
 @bp.before_app_request
 def before_request():
     if current_user.is_authenticated:

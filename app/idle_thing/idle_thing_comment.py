@@ -2,7 +2,6 @@ import jwt
 from flask import (
     request, jsonify, current_app
 )
-from flask_login import current_user
 
 from . import bp
 from .. import db
@@ -93,10 +92,11 @@ def delete_mission_comment():
 
         # 打开数据库连接
         user = User.query.filter_by(user_id=user_id).first()
-        if not user.can(Permission.MODERATE_COMMENTS):
-            return jsonify(status='error', error='Permission deny')
 
-        mc = IdleThingComment.query.filter_by(id=id).first()
+        mc = IdleThingComment.query.filter_by(id=id, disabled=0).first()
+        if user != mc.user \
+                and not user.can(Permission.MODERATE_COMMENTS):
+            return jsonify(status='error', error='Permission deny')
 
         error = None
         if user is None:
@@ -106,10 +106,11 @@ def delete_mission_comment():
             error = 'Error id.'
 
         if error is None:
-            # 打开数据库连接
+            post = mc.post
             try:
                 mc.disabled = True
-                db.session.add(mc)
+                post.comment_number -= 1
+                db.session.add_all([post, mc])
             except:
                 db.session.rollback()
                 return jsonify({'status': "error", 'error': 'Database error'})

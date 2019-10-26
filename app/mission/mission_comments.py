@@ -90,10 +90,10 @@ def delete_mission_comment():
 
         # 打开数据库连接
         user = User.query.filter_by(user_id=user_id).first()
-        if not user.can(Permission.MODERATE_COMMENTS):
+        mc = MissionComment.query.filter_by(id=id, disabled=0).first()
+        if user != mc.user \
+                and not user.can(Permission.MODERATE_COMMENTS):
             return jsonify(status='error', error='Permission deny')
-
-        mc = MissionComment.query.filter_by(id=id).first()
 
         error = None
         if user is None:
@@ -104,9 +104,11 @@ def delete_mission_comment():
 
         if error is None:
             # 打开数据库连接
+            post = mc.post
             try:
+                post.comment_number -= 1
                 mc.disabled = True
-                db.session.add(mc)
+                db.session.add_all([post, mc])
             except:
                 db.session.rollback()
                 return jsonify({'status': "error", 'error': 'Database error'})
