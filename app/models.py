@@ -201,10 +201,13 @@ class Mission(db.Model):
     money = db.Column(db.Float)
     evaluate = db.Column(db.Integer)
     receiver_id = db.Column(db.Integer)
+    receiver_nickname = db.Column(db.String(100), default='')
+    receiver_email = db.Column(db.String(100), default='')
     release_time = db.Column(db.DateTime, default=datetime.now)
     is_deleted = db.Column(db.Integer, default=0)
     is_received = db.Column(db.Integer, default=0)
     is_finished = db.Column(db.Integer, default=0)
+    is_confirmed_finish = db.Column(db.Integer, default=0)
 
     comments = db.relationship('MissionComment', backref='post', lazy='dynamic')
 
@@ -289,6 +292,7 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime(), default=datetime.now)
     auth_token = db.Column(db.String(200))
     bg_url = db.Column(db.String(200))
+    money = db.Column(db.Float, default=0.0)
 
     missions = db.relationship('Mission', backref='user', lazy='dynamic')
     idle_things = db.relationship('IdleThing', backref='user', lazy='dynamic')

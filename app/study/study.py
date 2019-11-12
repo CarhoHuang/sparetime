@@ -468,13 +468,64 @@ def insert():
     return jsonify({'status': "error", 'error': 'error method'})
 
 
+@bp.route('/confirm_finish', methods=['GET', 'POST'])
+def confirm_finish():
+    """
+    主人确认完成
+    :return: 处理情况
+    """
+    if request.method == 'POST':
+        try:
+            # 拿出auth_token，裁剪掉前两位和最后一位
+            auth_token_str = str(request.form['auth_token'])[2:len(str(request.form['auth_token'])) - 1]
+            auth_token = bytes(auth_token_str, 'utf8')
+            post_id = request.form['post_id']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        # 通过token获取用户
+        try:
+            key = current_app.config['SECRET_KEY']
+            user_json = jwt.decode(auth_token, key, algorithms=['HS256'])
+        except:
+            return jsonify(status='error', error='decode failed')
+        # 判断该token是否跟解析出来的用户token一致
+        user_id = user_json.get('user_id')
+        # 主人
+        user = User.query.filter_by(user_id=user_id).first()
+        # 验证token是否一致，不一致就return
+        if str(request.form['auth_token']) != user.auth_token:
+            return jsonify(status='error', error='Authenticate failed')
+
+        post = Study.query.filter_by(id=post_id).first()
+
+        if post.user.user_id != user.user_id:
+            return jsonify(status='error', error='Not belonging to the user')
+
+        error = None
+        if post.is_solved != 0:
+            error = 'Post error'
+
+        if error is None:
+            try:
+                post.is_solved = not post.is_solved
+                db.session.add(post)
+            except Exception:
+                print(Exception.args)
+                db.session.rollback()
+                return jsonify({'status': "error", 'error': 'Database error'})
+            return jsonify(status='success')
+        return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
 # 刷新任务目的地点获取任务的详细信息
 @bp.route('/refresh_newest', methods=('GET', 'POST'))
 def refresh_newest():
     if request.method == 'POST':
         json_data = {}
         json_data = list_2_json(
-            Study.query.order_by(Study.id.desc()).limit(10).all())
+            Study.query.filter_by(is_deleted=0).order_by(Study.id.desc()).limit(10).all())
         data = {'status': "success", 'data': json_data}
         return jsonify(data)
     return jsonify({'status': "error", 'error': 'error method'})

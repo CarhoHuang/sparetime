@@ -40,8 +40,6 @@ def add_mission_comment():
             error = 'Error user.'
         if post is None:
             error = 'Error post.'
-        if not user.can(Permission.COMMENT):
-            error = 'Do not have permission.'
 
         if error is None:
             # 打开数据库连接
@@ -66,7 +64,7 @@ def add_mission_comment():
                 "disabled": mc.disabled}
             return jsonify(status='success', data=mc_json)
 
-        return jsonify({'status': "error", 'error': 'no data'})
+        return jsonify({'status': "error", 'error': error})
     return jsonify({'status': "error", 'error': 'error method'})
 
 

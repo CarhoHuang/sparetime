@@ -38,7 +38,10 @@ def list_2_json(li):
             "money": mission.money,
             "evaluate": mission.evaluate,
             "receiver_id": mission.receiver_id,
+            "receiver_nickname": mission.receiver_nickname,
+            "receiver_email": mission.receiver_email,
             "is_received": mission.is_received,
+            "is_confirmed_finish": mission.is_confirmed_finish,
             "is_finished": mission.is_finished}})
     return json_data
 
@@ -55,7 +58,7 @@ def list_2_cjson(li):
             "post_id": comment.post.id,
             "content": comment.content,
             "time": comment.time,
-            "post_type":comment.post_type,
+            "post_type": comment.post_type,
             "disabled": comment.disabled}})
     return json_data
 
@@ -567,49 +570,148 @@ def up_evaluate():
     return jsonify({'status': "error", 'error': 'error method'})
 
 
-# 删除或反删除任务
-@bp.route('/delete_or_not', methods=('GET', 'POST'))
-def delete_or_not():  # 如果删除传入is_deleted = 1, 如果恢复 = 0
+# 刷新任务目的地点获取任务的详细信息
+@bp.route('/refresh_newest', methods=('GET', 'POST'))
+def refresh_newest():
     if request.method == 'POST':
         try:
-            # 拿出auth_token，裁剪掉前两位和最后一位
-            auth_token_str = str(request.form['auth_token'])[2:len(str(request.form['auth_token'])) - 1]
-            auth_token = bytes(auth_token_str, 'utf8')
-            post_id = request.form['post_id']
+            destination = request.form['destination']
+            biggest_id = int(request.form['biggest_id'])
         except:
             return jsonify(status='error', error='Data obtain failure')
 
-        # 通过token获取用户
-        try:
-            key = current_app.config['SECRET_KEY']
-            user_json = jwt.decode(auth_token, key, algorithms=['HS256'])
-        except:
-            return jsonify(status='error', error='decode failed')
-        # 判断该token是否跟解析出来的用户token一致
-        user_id = user_json.get('user_id')
-        # 打开数据库连接
-        user = User.query.filter_by(user_id=user_id).first()
-        # 验证token是否一致，不一致就return
-        if str(request.form['auth_token']) != user.auth_token:
-            return jsonify(status='error', error='authentication failed')
-
-        mission = Mission.query.filter_by(id=post_id).first()
-        if mission.user.user_id != user.user_id:
-            return jsonify(status='error', error='Not belonging to the user')
+        # 先去取得一个最大的id,label 方法重新命名了一个字段
+        res = db.session.query(db.func.max(Mission.id).label('max_id')).one()
+        id = res.max_id
 
         error = None
-        if int(post_id) < 0:
-            error = 'Error Mission_id.'
+        if destination is None:
+            error = 'Error destination.'
+        if biggest_id is None:
+            error = 'Error before'
+
+        json_data = {}
+        if error is None:
+            if destination == '随机' and id > biggest_id:
+                json_data = list_2_json(
+                    Mission.query.filter(Mission.id > biggest_id, Mission.is_deleted == 0,
+                                         Mission.end_time > datetime.now(), Mission.is_received == 0).order_by(
+                        Mission.id.desc()).limit(10).all())
+            elif id > biggest_id:
+                print(biggest_id, destination)
+                json_data = list_2_json(
+                    Mission.query.filter(Mission.id > biggest_id, Mission.destination == destination,
+                                         Mission.is_deleted == 0, Mission.end_time > datetime.now(),
+                                         Mission.is_received == 0).order_by(
+                        Mission.id.desc()).limit(
+                        10).all())
+
+            return jsonify({'status': "success", 'data': json_data})
+        return jsonify({'status': "error", 'error': 'no data'})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
+# 获取用户发布的任务帖子
+@bp.route('/get_user_posts', methods=['GET', 'POST'])
+def get_user_posts():
+    if request.method == 'POST':
+        try:
+            user_id = request.form['user_id']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        error = None
+        if user_id is None:
+            error = 'Error user.'
 
         if error is None:
-            mission.is_deleted = not mission.is_deleted
-            try:
-                db.session.add(mission)
-            except:
-                db.session.rollback()
-                return jsonify({'status': "error", 'error': 'Database error'})
-            return jsonify(status='success')
+            json_data = list_2_json(
+                Mission.query.filter_by(user_id=user_id, is_deleted=0).order_by(Mission.id.desc()).all())
+
+            return jsonify({'status': "success", 'data': json_data})
         return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
+# 获取用户接受的任务帖子
+@bp.route('/get_user_received_posts', methods=['GET', 'POST'])
+def get_user_received_posts():
+    if request.method == 'POST':
+        try:
+            user_id = request.form['user_id']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        error = None
+        if user_id is None:
+            error = 'Error user.'
+
+        if error is None:
+            json_data = list_2_json(
+                Mission.query.filter_by(receiver_id=user_id, is_received=1).order_by(Mission.id.desc()).all())
+
+            return jsonify({'status': "success", 'data': json_data})
+        return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
+# 获取用户已接收到且完成的任务
+@bp.route('/get_user_received_done_posts', methods=['GET', 'POST'])
+def get_user_received_done_posts():
+    if request.method == 'POST':
+        try:
+            user_id = request.form['user_id']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        error = None
+        if user_id is None:
+            error = 'Error user.'
+
+        if error is None:
+            json_data = list_2_json(
+                Mission.query.filter_by(receiver_id=user_id, is_received=1, is_finished=1,
+                                        is_confirmed_finish=1).order_by(
+                    Mission.id.desc()).all())
+
+            return jsonify({'status': "success", 'data': json_data})
+        return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
+# 获取用户已接收到但未完成的任务
+@bp.route('/get_user_received_ndone_posts', methods=['GET', 'POST'])
+def get_user_received_ndone_posts():
+    if request.method == 'POST':
+        try:
+            user_id = request.form['user_id']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        error = None
+        if user_id is None:
+            error = 'Error user.'
+
+        if error is None:
+            json_data = list_2_json(
+                Mission.query.filter_by(receiver_id=user_id, is_received=1, is_confirmed_finish=0).order_by(
+                    Mission.id.desc()).all())
+
+            return jsonify({'status': "success", 'data': json_data})
+        return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
+@bp.route('/get_deleted_missions', methods=['GET', 'POST'])
+def get_deleted_missions():
+    if request.method == 'POST':
+        deleted_missions = Mission.query.filter_by(is_deleted=1).all()
+        li = []
+        for mission in deleted_missions:
+            li.append(mission.id)
+
+        return jsonify({'status': "success", 'data': li})
+
     return jsonify({'status': "error", 'error': 'error method'})
 
 
@@ -700,147 +802,77 @@ def insert():
             error = 'Error deadline.'
         if money is None:
             error = 'Error money.'
+        if user.money < float(money):
+            error = 'No money.'
 
         if error is None:
             # 打开数据库连接
             try:
+                user.money -= float(money)
                 m = Mission(user=user, content=content, picture_url_1=p1_name, picture_url_2=p2_name,
                             picture_url_3=p3_name, origin=origin, destination=destination, end_time=end_time,
                             money=money)
                 db.session.add(m)
+                db.session.add(user)
             except Exception:
                 print(Exception.args)
                 db.session.rollback()
             return jsonify(status='success')
 
-        return jsonify({'status': "error", 'error': 'no data'})
-    return jsonify({'status': "error", 'error': 'error method'})
-
-
-# 刷新任务目的地点获取任务的详细信息
-@bp.route('/refresh_newest', methods=('GET', 'POST'))
-def refresh_newest():
-    if request.method == 'POST':
-        try:
-            destination = request.form['destination']
-            biggest_id = int(request.form['biggest_id'])
-        except:
-            return jsonify(status='error', error='Data obtain failure')
-
-        # 先去取得一个最大的id,label 方法重新命名了一个字段
-        res = db.session.query(db.func.max(Mission.id).label('max_id')).one()
-        id = res.max_id
-
-        error = None
-        if destination is None:
-            error = 'Error destination.'
-        if biggest_id is None:
-            error = 'Error before'
-
-        json_data = {}
-        if error is None:
-            if destination == '随机' and id > biggest_id:
-                json_data = list_2_json(
-                    Mission.query.filter(Mission.id > biggest_id, Mission.is_received == 0).order_by(
-                        Mission.id.desc()).limit(10).all())
-            elif id > biggest_id:
-                print(biggest_id, destination)
-                json_data = list_2_json(
-                    Mission.query.filter(Mission.id > biggest_id, Mission.is_received == 0,
-                                         Mission.destination == destination).order_by(Mission.id.desc()).limit(
-                        10).all())
-
-            return jsonify({'status': "success", 'data': json_data})
-        return jsonify({'status': "error", 'error': 'no data'})
-    return jsonify({'status': "error", 'error': 'error method'})
-
-
-# 获取用户发布的任务帖子
-@bp.route('/get_user_posts', methods=['GET', 'POST'])
-def get_user_posts():
-    if request.method == 'POST':
-        try:
-            user_id = request.form['user_id']
-        except:
-            return jsonify(status='error', error='Data obtain failure')
-
-        error = None
-        if user_id is None:
-            error = 'Error user.'
-
-        if error is None:
-            json_data = list_2_json(
-                Mission.query.filter_by(user_id=user_id).order_by(Mission.id.desc()).all())
-
-            return jsonify({'status': "success", 'data': json_data})
         return jsonify({'status': "error", 'error': error})
     return jsonify({'status': "error", 'error': 'error method'})
 
 
-# 获取用户接受的任务帖子
-@bp.route('/get_user_received_posts', methods=['GET', 'POST'])
-def get_user_received_posts():
+# 删除或反删除任务
+@bp.route('/delete_or_not', methods=('GET', 'POST'))
+def delete_or_not():  # 如果删除传入is_deleted = 1, 如果恢复 = 0
     if request.method == 'POST':
         try:
-            user_id = request.form['user_id']
+            # 拿出auth_token，裁剪掉前两位和最后一位
+            auth_token_str = str(request.form['auth_token'])[2:len(str(request.form['auth_token'])) - 1]
+            auth_token = bytes(auth_token_str, 'utf8')
+            post_id = request.form['post_id']
         except:
             return jsonify(status='error', error='Data obtain failure')
 
-        error = None
-        if user_id is None:
-            error = 'Error user.'
-
-        if error is None:
-            json_data = list_2_json(
-                Mission.query.filter_by(receiver_id=user_id, is_received=1).order_by(Mission.id.desc()).all())
-
-            return jsonify({'status': "success", 'data': json_data})
-        return jsonify({'status': "error", 'error': error})
-    return jsonify({'status': "error", 'error': 'error method'})
-
-
-# 获取用户已接收到且完成的任务
-@bp.route('/get_user_received_done_posts', methods=['GET', 'POST'])
-def get_user_received_done_posts():
-    if request.method == 'POST':
+        # 通过token获取用户
         try:
-            user_id = request.form['user_id']
+            key = current_app.config['SECRET_KEY']
+            user_json = jwt.decode(auth_token, key, algorithms=['HS256'])
         except:
-            return jsonify(status='error', error='Data obtain failure')
+            return jsonify(status='error', error='decode failed')
+        # 判断该token是否跟解析出来的用户token一致
+        user_id = user_json.get('user_id')
+        # 主人
+        user = User.query.filter_by(user_id=user_id).first()
+        # 验证token是否一致，不一致就return
+        if str(request.form['auth_token']) != user.auth_token:
+            return jsonify(status='error', error='authentication failed')
+
+        mission = Mission.query.filter_by(id=post_id).first()
+        if mission.user.user_id != user.user_id:
+            return jsonify(status='error', error='Not belonging to the user')
 
         error = None
-        if user_id is None:
-            error = 'Error user.'
+        if int(post_id) < 0:
+            error = 'Error Mission_id.'
+        if mission.is_received == 1:
+            error = 'Mission is received!'
 
         if error is None:
-            json_data = list_2_json(
-                Mission.query.filter_by(receiver_id=user_id, is_received=1, is_finished=1).order_by(
-                    Mission.id.desc()).all())
-
-            return jsonify({'status': "success", 'data': json_data})
-        return jsonify({'status': "error", 'error': error})
-    return jsonify({'status': "error", 'error': 'error method'})
-
-
-# 获取用户已接收到但未完成的任务
-@bp.route('/get_user_received_ndone_posts', methods=['GET', 'POST'])
-def get_user_received_ndone_posts():
-    if request.method == 'POST':
-        try:
-            user_id = request.form['user_id']
-        except:
-            return jsonify(status='error', error='Data obtain failure')
-
-        error = None
-        if user_id is None:
-            error = 'Error user.'
-
-        if error is None:
-            json_data = list_2_json(
-                Mission.query.filter_by(receiver_id=user_id, is_received=1, is_finished=0).order_by(
-                    Mission.id.desc()).all())
-
-            return jsonify({'status': "success", 'data': json_data})
+            if mission.is_deleted == 0:
+                user.money += mission.money
+                mission.is_deleted = not mission.is_deleted
+            else:
+                user.money -= mission.money
+                mission.is_deleted = not mission.is_deleted
+            try:
+                db.session.add(mission)
+                db.session.add(user)
+            except:
+                db.session.rollback()
+                return jsonify({'status': "error", 'error': 'Database error'})
+            return jsonify(status='success')
         return jsonify({'status': "error", 'error': error})
     return jsonify({'status': "error", 'error': 'error method'})
 
@@ -871,11 +903,68 @@ def receive_mission():
             return jsonify(status='error', error='Authenticate failed')
 
         mission = Mission.query.filter_by(id=post_id).first()
+
         error = None
+        if mission.is_deleted != 0:
+            error = "Mission is not existed!"
+        if mission.end_time <= datetime.now():
+            error = "Mission is expired!"
+        if mission.is_received != 0:
+            error = "Mission has been accepted!"
 
         if error is None:
             try:
                 mission.receiver_id = user.user_id
+                mission.receiver_email = user.email
+                mission.receiver_nickname = user.nickname
+                mission.is_received = not mission.is_received
+                db.session.add(mission)
+            except Exception:
+                print(Exception.args)
+                db.session.rollback()
+                return jsonify({'status': "error", 'error': 'Database error'})
+            return jsonify(status='success')
+        return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
+@bp.route('/rollback_mission', methods=['GET', 'POST'])
+def rollback_mission():
+    """
+    任务状态回滚
+    :return: 处理状态信息
+    """
+    if request.method == 'POST':
+        try:
+            # 拿出auth_token，裁剪掉前两位和最后一位
+            auth_token_str = str(request.form['auth_token'])[2:len(str(request.form['auth_token'])) - 1]
+            auth_token = bytes(auth_token_str, 'utf8')
+            post_id = request.form['post_id']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        # 通过token获取接收用户
+        try:
+            key = current_app.config['SECRET_KEY']
+            user_json = jwt.decode(auth_token, key, algorithms=['HS256'])
+        except:
+            return jsonify(status='error', error='decode failed')
+        # 判断该token是否跟解析出来的用户token一致
+        user_id = user_json.get('user_id')
+        # 打开数据库连接
+        user = User.query.filter_by(user_id=user_id).first()
+        # 验证token是否一致，不一致就return
+        if str(request.form['auth_token']) != user.auth_token:
+            return jsonify(status='error', error='Authenticate failed')
+
+        mission = Mission.query.filter_by(id=post_id).first()
+        error = None
+
+        if error is None:
+            try:
+                mission.receiver_id = None
+                mission.receiver_email = None
+                mission.receiver_nickname = None
                 mission.is_received = not mission.is_received
                 db.session.add(mission)
             except Exception:
@@ -889,6 +978,55 @@ def receive_mission():
 
 @bp.route('/finish_mission', methods=['GET', 'POST'])
 def finish_mission():
+    """
+    接收者完成任务
+    :return: 处理状态信息
+    """
+    if request.method == 'POST':
+        try:
+            # 拿出auth_token，裁剪掉前两位和最后一位
+            auth_token_str = str(request.form['auth_token'])[2:len(str(request.form['auth_token'])) - 1]
+            auth_token = bytes(auth_token_str, 'utf8')
+            post_id = request.form['post_id']
+        except:
+            return jsonify(status='error', error='Data obtain failure')
+
+        # 通过token获取接收用户
+        try:
+            key = current_app.config['SECRET_KEY']
+            user_json = jwt.decode(auth_token, key, algorithms=['HS256'])
+        except:
+            return jsonify(status='error', error='decode failed')
+        # 判断该token是否跟解析出来的用户token一致
+        user_id = user_json.get('user_id')
+        # 接收者
+        user = User.query.filter_by(user_id=user_id).first()
+        # 验证token是否一致，不一致就return
+        if str(request.form['auth_token']) != user.auth_token:
+            return jsonify(status='error', error='Authenticate failed')
+
+        mission = Mission.query.filter_by(id=post_id).first()
+        error = None
+
+        if error is None:
+            try:
+                mission.is_finished = not mission.is_finished
+                db.session.add(mission)
+            except Exception:
+                print(Exception.args)
+                db.session.rollback()
+                return jsonify({'status': "error", 'error': 'Database error'})
+            return jsonify(status='success')
+        return jsonify({'status': "error", 'error': error})
+    return jsonify({'status': "error", 'error': 'error method'})
+
+
+@bp.route('/confirm_finish', methods=['GET', 'POST'])
+def confirm_finish():
+    """
+    主人确认完成
+    :return: 处理情况
+    """
     if request.method == 'POST':
         try:
             # 拿出auth_token，裁剪掉前两位和最后一位
@@ -906,20 +1044,27 @@ def finish_mission():
             return jsonify(status='error', error='decode failed')
         # 判断该token是否跟解析出来的用户token一致
         user_id = user_json.get('user_id')
-        # 打开数据库连接
+        # 主人
         user = User.query.filter_by(user_id=user_id).first()
         # 验证token是否一致，不一致就return
         if str(request.form['auth_token']) != user.auth_token:
             return jsonify(status='error', error='Authenticate failed')
 
         mission = Mission.query.filter_by(id=post_id).first()
+        receiver = User.query.filter_by(user_id=mission.receiver_id).first()
+
         if mission.user.user_id != user.user_id:
             return jsonify(status='error', error='Not belonging to the user')
         error = None
+        if mission.is_deleted != 0 and mission.id_received != 1 \
+                and mission.is_finished != 1 and mission.is_confirmed_finish != 0:
+            error = 'Mission error'
 
         if error is None:
             try:
-                mission.is_finished = not mission.is_finished
+                receiver.money += mission.money
+                mission.is_confirmed_finish = not mission.is_confirmed_finish
+                db.session.add(receiver)
                 db.session.add(mission)
             except Exception:
                 print(Exception.args)
@@ -944,16 +1089,26 @@ def search():
             error = 'Error content.'
 
         if error is None:
-            post_li = Mission.query.filter(Mission.content.like('%' + content + '%')).order_by(
+            post_li = []
+            post_li = Mission.query.filter(Mission.content.like('%' + content + '%'), Mission.is_received == 0,
+                                           Mission.is_deleted == 0, Mission.is_finished == 0,
+                                           Mission.is_confirmed_finish == 0).order_by(
                 Mission.id.desc()).limit(20).all()  # 标题
-            post_li.extend(Mission.query.filter(Mission.origin.like('%' + content + '%')).order_by(
+            post_li.extend(Mission.query.filter(Mission.origin.like('%' + content + '%'), Mission.is_received == 0,
+                                                Mission.is_deleted == 0, Mission.is_finished == 0,
+                                                Mission.is_confirmed_finish == 0).order_by(
                 Mission.id.desc()).limit(20).all())  # 起点
-            post_li.extend(Mission.query.filter(Mission.destination.like('%' + content + '%')).order_by(
+            post_li.extend(Mission.query.filter(Mission.destination.like('%' + content + '%'), Mission.is_received == 0,
+                                                Mission.is_deleted == 0, Mission.is_finished == 0,
+                                                Mission.is_confirmed_finish == 0).order_by(
                 Mission.id.desc()).limit(20).all())  # 终点
             post_li.extend(
-                Mission.query.join(User).filter(User.nickname.like('%' + content + '%')).order_by(
+                Mission.query.join(User).filter(User.nickname.like('%' + content + '%'), Mission.is_received == 0,
+                                                Mission.is_deleted == 0, Mission.is_finished == 0,
+                                                Mission.is_confirmed_finish == 0).order_by(
                     Mission.id.desc()).limit(20).all())  # 用户
 
+            post_li = list(set(post_li))  # 去重
             json_data = list_2_json(post_li)
 
             return jsonify({'status': "success", 'data': json_data})
@@ -974,7 +1129,8 @@ def load_more():
         except ValueError:
             page = 1
         # 分页
-        pagination = Mission.query.order_by(Mission.release_time.desc()) \
+        pagination = Mission.query.filter(Mission.is_deleted == 0, Mission.end_time > datetime.now()).order_by(
+            Mission.release_time.desc()) \
             .paginate(page=page, per_page=current_app.config['POSTS_PER_PAGE'],
                       error_out=False)
         json_data = list_2_json(pagination.items)
